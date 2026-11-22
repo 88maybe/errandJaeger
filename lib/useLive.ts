@@ -3,7 +3,8 @@
 // While an outing is active, refresh live train info every 30 seconds (and the "in N min" clock with it).
 import { useEffect, useRef, useState } from "react";
 import type { RoutePlan, TransitLeg } from "./planner/types";
-import { transitLegs } from "./transit/client";
+import type { Departures } from "./planner/schedule";
+import { legKey, transitLegs } from "./transit/client";
 import { fetchLive, liveInfoFor, liveKey, type LiveInfo, type LiveResponse } from "./transit/live";
 
 export const LIVE_REFRESH_MS = 30_000;
@@ -15,7 +16,7 @@ export type LiveState = {
   status: "loading" | "live" | "unavailable"; // unavailable = we show scheduled times instead
 };
 
-export function useLive(plan: RoutePlan | null, active: boolean): LiveState {
+export function useLive(plan: RoutePlan | null, active: boolean, train?: Departures): LiveState {
   const [nowMs, setNowMs] = useState(0); // 0 = not read yet
   const now = new Date(nowMs);
   const [data, setData] = useState<LiveResponse | null>(null);
@@ -53,7 +54,8 @@ export function useLive(plan: RoutePlan | null, active: boolean): LiveState {
       // Only trains that haven't left yet, and are due within the next hour or so.
       const dep = leg.departAt ? new Date(leg.departAt).getTime() : new Date(leg.startTime).getTime();
       if (dep < now.getTime() - 60_000 || dep > now.getTime() + 90 * 60_000) continue;
-      const info = liveInfoFor(leg, data.predictions[liveKey(leg)], now);
+      const trips = train?.[legKey(leg)];
+      const info = liveInfoFor(leg, data.predictions[liveKey(leg)], now, trips ? new Set(trips.map((t) => t.trip)) : null);
       if (info) infos[leg.startTime] = info;
     }
   }

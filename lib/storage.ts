@@ -24,6 +24,7 @@ export type Outing = {
   ticked: number[]; // positions (0-8) of squares you have ticked
   step: number; // which step you are on in the one-step view
   finishedAt?: string; // set when you press "Finish outing"
+  leftNow?: boolean; // started with "Leave now" (only then do ticks re-time the plan)
   train?: Departures; // the day's real scheduled trips for the rides in this plan (used to re-time without asking again)
   rev?: number; // goes up each time the plan is re-timed (so AI wording is made again)
   // What changed the last time the plan was re-timed, in plain words, plus stops that would now be closed.

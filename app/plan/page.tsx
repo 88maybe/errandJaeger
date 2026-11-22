@@ -24,7 +24,7 @@ export default function PlanPage() {
   const [simplifying, setSimplifying] = useState(false); // AI is rewriting the steps
   const [busy, setBusy] = useState(false); // re-timing the plan
   const tried = useRef("");
-  const live = useLive(outing?.plan ?? null, !!outing && !outing.finishedAt);
+  const live = useLive(outing?.plan ?? null, !!outing && !outing.finishedAt, outing?.train);
 
   // Calmer mode: once per version of the plan, ask the AI for one simple action per step. If it can't, the standard steps stay.
   useEffect(() => {
@@ -110,6 +110,21 @@ export default function PlanPage() {
     const card = outing.card.map((sq) => (sq.id === `stop-${placeId}` ? { id: sq.id, kind: "extra" as const, label: "Take a moment to look around" } : sq));
     update((prev) => ({ ...applyReplan(prev, r, [`Dropped ${name}.`], card), train: merged }));
     setBusy(false);
+  }
+
+  // Every stop was dropped: say so kindly and point back to Home.
+  if (outing.plan.stops.length === 0) {
+    return (
+      <main>
+        <h1 className="page-title">Your plan</h1>
+        <div className="card empty">
+          <p>That was your last stop. Want to add something else?</p>
+          <Link href="/" className="btn btn-primary">
+            Back to Home
+          </Link>
+        </div>
+      </main>
+    );
   }
 
   const activeView = view ?? (outing.mode === "calm" ? "steps" : "overview");

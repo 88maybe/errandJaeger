@@ -1,7 +1,7 @@
 // Finds a subway route between two stations. Plain code over the small hand-built map, no AI, no live data yet.
 // Normal mode: the fastest way. Calm mode: the fewest changes first, then the fastest.
-import { distanceMeters } from "../planner/geo";
-import { LINES, STATIONS, platformName, stationById, type Line, type Station } from "./data";
+import { distanceMeters, walkMinutes } from "../planner/geo";
+import { LINES, STATIONS, WALK_LINKS, platformName, stationById, type Line, type Station } from "./data";
 
 // ESTIMATES (minutes). Real trains vary, and live times are not used yet.
 export const WAIT_MIN = 5; // average wait for the next train
@@ -21,7 +21,9 @@ export type Ride = {
   stops: number; // how many stops you ride (not counting the one you board at)
   rideMin: number; // ESTIMATE
   waitMin: number; // ESTIMATE: wait for the train (plus the walk inside the station if this is a change)
-  changeFrom: Station | null; // set when this ride starts with a change of lines
+  changeFrom: Station | null; // set when this ride starts with a change of lines (in the same station)
+  walkLinkFrom: Station | null; // set when you walk outside from the previous ride's station to this one
+  walkLinkMin: number; // ESTIMATE of that walk
 };
 
 export type TransitRoute = { rides: Ride[]; changes: number; totalMin: number };
@@ -30,6 +32,13 @@ export type TransitRoute = { rides: Ride[]; changes: number; totalMin: number };
 export function nearestStation(point: { lat: number; lng: number }): Station {
   return STATIONS.reduce((best, s) => (distanceMeters(point, s) < distanceMeters(point, best) ? s : best));
 }
+
+// Short walks between stations: [other station, minutes] (an ESTIMATE from distance).
+const linkedStations = (stationId: string): { id: string; min: number }[] =>
+  WALK_LINKS.flatMap(([a, b]) => (a === stationId ? [b] : b === stationId ? [a] : [])).map((id) => ({
+    id,
+    min: Math.max(1, walkMinutes(stationById(stationId), stationById(id))),
+  }));
 
 const linesAt = (stationId: string) => LINES.filter((l) => l.stations.includes(stationId));
 
@@ -40,7 +49,7 @@ function hopMin(line: Line, a: string, b: string): number {
 }
 
 type State = { station: string; line: string };
-type Node = { cost: number; changes: number; prev: State | null; how: "board" | "ride" | "change" };
+type Node = { cost: number; changes: number; prev: State | null; how: "board" | "ride" | "change" | "walk" };
 
 export function findRoute(fromId: string, toId: string, mode: "normal" | "calm"): TransitRoute | null {
   if (fromId === toId) return null;
@@ -74,6 +83,15 @@ export function findRoute(fromId: string, toId: string, mode: "normal" | "calm")
         { cost: node.cost + hopMin(line, state.station, line.stations[j]), changes: node.changes, prev: state, how: "ride" },
       );
     }
+    // Walk outside to a nearby station and board a line there.
+    for (const link of linkedStations(state.station)) {
+      for (const other of linesAt(link.id)) {
+        push(
+          { station: link.id, line: other.id },
+          { cost: node.cost + link.min + WAIT_MIN + penalty, changes: node.changes + 1, prev: state, how: "walk" },
+        );
+      }
+    }
     // Change to another line here.
     for (const other of linesAt(state.station)) {
       if (other.id === state.line) continue;
@@ -105,7 +123,7 @@ export function findRoute(fromId: string, toId: string, mode: "normal" | "calm")
   const rides: Ride[] = [];
   let groupStart = 0;
   for (let p = 1; p <= path.length; p++) {
-    if (p < path.length && path[p].node.how !== "change") continue;
+    if (p < path.length && path[p].node.how !== "change" && path[p].node.how !== "walk") continue;
     const first = path[groupStart];
     const last = path[p - 1];
     const line = LINES.find((l) => l.id === first.state.line)!;
@@ -127,7 +145,10 @@ export function findRoute(fromId: string, toId: string, mode: "normal" | "calm")
       for (let k = Math.min(idxFrom, idxTo); k < Math.max(idxFrom, idxTo); k++) {
         rideMin += hopMin(line, line.stations[k], line.stations[k + 1]);
       }
-      const changed = groupStart > 0;
+      const walked = groupStart > 0 && first.node.how === "walk";
+      const changed = groupStart > 0 && !walked;
+      const prevStation = groupStart > 0 ? stationById(path[groupStart - 1].state.station) : null;
+      const linkMin = walked && prevStation ? Math.max(1, walkMinutes(prevStation, stationById(first.state.station))) : 0;
       rides.push({
         line,
         sameWay,
@@ -140,11 +161,13 @@ export function findRoute(fromId: string, toId: string, mode: "normal" | "calm")
         rideMin: Math.max(1, Math.round(rideMin)),
         waitMin: changed ? CHANGE_WALK_MIN + WAIT_MIN : WAIT_MIN,
         changeFrom: changed ? stationById(first.state.station) : null,
+        walkLinkFrom: walked ? prevStation : null,
+        walkLinkMin: linkMin,
       });
     }
     groupStart = p;
   }
 
-  const totalMin = rides.reduce((sum, r) => sum + r.waitMin + r.rideMin, 0);
+  const totalMin = rides.reduce((sum, r) => sum + r.walkLinkMin + r.waitMin + r.rideMin, 0);
   return { rides, changes: Math.max(0, rides.length - 1), totalMin };
 }

@@ -25,7 +25,7 @@ export default function Home() {
   const [message, setMessage] = useState<string | null>(null);
   const [checking, setChecking] = useState(false); // looking up real train times
   // A finished new plan waiting for you to say "replace my current one".
-  const [waiting, setWaiting] = useState<{ plan: RoutePlan; mode: "normal" | "calm"; train?: Departures } | null>(null);
+  const [waiting, setWaiting] = useState<{ plan: RoutePlan; mode: "normal" | "calm"; train?: Departures; leftNow?: boolean } | null>(null);
 
   // Load what we remembered: your last choices, and any plan in progress.
   useEffect(() => {
@@ -33,9 +33,9 @@ export default function Home() {
     getOuting().then(setCurrent);
   }, []);
 
-  async function saveAndGo(plan: RoutePlan, mode: "normal" | "calm", train?: Departures) {
+  async function saveAndGo(plan: RoutePlan, mode: "normal" | "calm", train?: Departures, leftNow?: boolean) {
     const id = Date.now().toString(36);
-    await saveOuting({ id, createdAt: new Date().toISOString(), mode, plan, card: buildCard(plan, id), ticked: [], step: 0, train });
+    await saveOuting({ id, createdAt: new Date().toISOString(), mode, plan, card: buildCard(plan, id), ticked: [], step: 0, train, leftNow });
     router.push("/plan");
   }
 
@@ -73,10 +73,10 @@ export default function Home() {
 
     // A plan is already in progress: ask before replacing it.
     if (current) {
-      setWaiting({ plan, mode, train });
+      setWaiting({ plan, mode, train, leftNow: !!values.leaveNow });
       return;
     }
-    await saveAndGo(plan, mode, train);
+    await saveAndGo(plan, mode, train, !!values.leaveNow);
   }
 
   return (
@@ -103,7 +103,7 @@ export default function Home() {
             <button type="button" className="btn btn-secondary" onClick={() => router.push("/plan")}>
               Keep my current plan
             </button>
-            <button type="button" className="btn btn-primary" onClick={() => saveAndGo(waiting.plan, waiting.mode, waiting.train)}>
+            <button type="button" className="btn btn-primary" onClick={() => saveAndGo(waiting.plan, waiting.mode, waiting.train, waiting.leftNow)}>
               Replace it
             </button>
           </div>

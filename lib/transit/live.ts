@@ -48,14 +48,26 @@ export type LiveInfo = {
 
 const STATUS_WORDS: Record<string, string> = { CANCELLED: "Cancelled", SKIPPED: "This stop is skipped", NO_DATA: "No live data" };
 
-export function liveInfoFor(leg: TransitLeg, predictions: LivePrediction[] | undefined, now: Date): LiveInfo | null {
+// `servingTrips` = ids of scheduled trips that stop at BOTH the boarding and the get-off station (from the saved schedule).
+// A prediction counts only if it is our planned trip, or a trip in that set. Same route and direction are already
+// guaranteed by the request. Otherwise we return null and the screen shows the scheduled time.
+export function liveInfoFor(
+  leg: TransitLeg,
+  predictions: LivePrediction[] | undefined,
+  now: Date,
+  servingTrips: Set<string> | null,
+): LiveInfo | null {
   if (!predictions || predictions.length === 0) return null;
+  const usable = (p: LivePrediction) => !!p.trip && (p.trip === leg.tripId || !!servingTrips?.has(p.trip));
+  predictions = predictions.filter(usable);
+  if (predictions.length === 0) return null;
   const scheduled = leg.departAt ? new Date(leg.departAt) : null;
   // Prefer the very trip we planned. Otherwise the next train that hasn't left yet.
   const mine = leg.tripId ? predictions.find((p) => p.trip === leg.tripId) : undefined;
   const upcoming = predictions.find((p) => p.dep && new Date(p.dep).getTime() >= now.getTime() - 30_000);
   const mineLeft = !!mine?.dep && new Date(mine.dep).getTime() < now.getTime() - 30_000;
-  const pick = (mine && !mineLeft ? mine : upcoming) ?? predictions[0];
+  const pick = mine && !mineLeft ? mine : upcoming;
+  if (!pick) return null;
   const sameTrip = pick === mine;
 
   const words = pick.relationship ? STATUS_WORDS[pick.relationship] ?? pick.relationship : pick.status;

@@ -72,7 +72,7 @@ export default function BingoPage() {
 
     // Ticking a stop re-times the rest of the plan from this moment.
     const square = outing.card[index];
-    const stopId = !wasTicked && square.kind === "stop" ? square.id.replace(/^stop-/, "") : null;
+    const stopId = outing.leftNow && !wasTicked && square.kind === "stop" ? square.id.replace(/^stop-/, "") : null;
     const r = stopId && !outing.finishedAt ? replanFromTick(outing.plan, outing.train ?? null, stopId, new Date()) : null;
     if (r) setRetimed(true);
     update((prev) =>

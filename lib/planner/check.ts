@@ -54,6 +54,12 @@ show("Kenmore start, calm, loop (short walks)", {
   mode: "calm",
   start: KENMORE,
 });
+show("Boston Common, snack + grocery (should use the Orange Line)", {
+  needs: ["snack", "grocery"],
+  startTime: twoPm,
+  loop: false,
+  start: { name: "Boston Common", lat: 42.355, lng: -71.0656 },
+});
 console.log(`\nPlaces loaded: ${PLACES.length}. Default start: ${KENMORE.name}.`);
 
 // Far-apart stops must visibly include a train, in BOTH modes.
@@ -86,3 +92,13 @@ for (const start of START_POINTS) {
   }
 }
 console.log(`\nFar-apart check: ${farTrips} long hops, ${farWithoutTrain} without a train ${farWithoutTrain === 0 ? "(OK)" : "(PROBLEM)"}`);
+
+// Orange Line checks: stations, terminals, one change onto the Green Line, and a plan that rides it.
+import { findRoute } from "../transit";
+const orangeOnly = findRoute("place-bbsta", "place-haecl", "normal");
+const orangeThenGreen = findRoute("place-bbsta", "place-pktrm", "normal");
+console.log(`Orange Back Bay -> Haymarket: ${orangeOnly?.rides.map((r) => `${r.line.name} ${r.stops} stops toward ${r.toward.join("/")} (${r.platform})`).join(" + ")}`);
+console.log(`Orange Back Bay -> Park Street: ${orangeThenGreen?.rides.map((r) => `${r.line.name} toward ${r.toward.join("/")}`).join(" + ")} (${orangeThenGreen?.changes} change)`);
+const orangePlan = planRoute({ needs: ["snack", "grocery"], startTime: twoPm, loop: false, start: { name: "Boston Common", lat: 42.355, lng: -71.0656 } }, PLACES);
+const usedOrange = orangePlan.legs.some((l) => l.type === "transit" && l.lineLabel === "Orange Line");
+console.log(`Orange plan check: ${usedOrange ? "OK, a plan rides the Orange Line" : "PROBLEM, no Orange leg"}`);

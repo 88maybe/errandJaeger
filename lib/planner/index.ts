@@ -61,6 +61,18 @@ function transitTrip(from: Point, to: Point, clock: Date, maxWalk: number, mode:
     t = addMinutes(t, walkIn);
   }
   for (const ride of route.rides) {
+    // Walking outside from the last station to the next one (no ride in between).
+    if (ride.walkLinkFrom) {
+      legs.push({
+        type: "walk",
+        from: `${ride.walkLinkFrom.name} station`,
+        to: `${ride.from.name} station`,
+        startTime: t.toISOString(),
+        durationMin: ride.walkLinkMin,
+        instruction: `Walk to ${ride.from.name} station, heading ${compassDirection(ride.walkLinkFrom, ride.from)}. About ${ride.walkLinkMin} min walk (estimate).`,
+      });
+      t = addMinutes(t, ride.walkLinkMin);
+    }
     const duration = ride.waitMin + ride.rideMin;
     const parts = {
       changeFrom: ride.changeFrom?.name ?? null,

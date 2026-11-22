@@ -38,6 +38,15 @@ export const STATIONS: Station[] = [
   { id: "place-state", name: "State", lat: 42.359, lng: -71.0576 },
 ];
 
+// Stations a short walk apart (about 5 minutes or less), so you can change between lines outside the station.
+// Walking time is worked out from distance and labelled as an estimate wherever it is shown.
+export const WALK_LINKS: [string, string][] = [
+  ["place-dwnxg", "place-pktrm"], // Downtown Crossing (Orange) to Park Street (Green)
+  ["place-haecl", "place-gover"], // Haymarket (Orange) to Government Center (Green)
+  ["place-state", "place-gover"], // State (Orange) to Government Center (Green)
+  ["place-chncl", "place-boyls"], // Chinatown (Orange) to Boylston (Green)
+];
+
 // Green Line trunk shared by B, C, D and E (west to east).
 const TRUNK = ["place-coecl", "place-armnl", "place-boyls", "place-pktrm", "place-gover"];
 
