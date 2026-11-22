@@ -1,23 +1,11 @@
-import { buildTimeline, emptyPlanMessage, skippedNote } from "@/lib/planner/timeline";
 import { formatNY } from "@/lib/planner/time";
+import { buildTimeline, skippedNote } from "@/lib/planner/timeline";
 import type { RoutePlan } from "@/lib/planner/types";
 
-export default function Timeline({ plan, onReset }: { plan: RoutePlan; onReset: () => void }) {
-  const empty = emptyPlanMessage(plan);
-  const note = skippedNote(plan);
-
-  if (empty) {
-    return (
-      <section>
-        <p className="kind-message">{empty}</p>
-        <button type="button" className="primary" onClick={onReset}>
-          Change my plan
-        </button>
-      </section>
-    );
-  }
-
+// The whole plan on one screen: summary, then walk, stop, walk, stop.
+export default function Timeline({ plan }: { plan: RoutePlan }) {
   const items = buildTimeline(plan);
+  const note = skippedNote(plan);
 
   return (
     <section>
@@ -36,27 +24,20 @@ export default function Timeline({ plan, onReset }: { plan: RoutePlan; onReset: 
         </div>
       </div>
 
-      <ol className="timeline">
+      <ol className="rail">
         {items.map((item, i) => (
-          <li key={i} className={`step ${item.kind}`}>
-            <div className="when">
-              {formatNY(item.startTime)}
-              <span> to {formatNY(item.endTime)}</span>
+          <li key={i} className={`rail-item ${item.kind}`}>
+            <div className="rail-time">
+              {formatNY(item.startTime)} to {formatNY(item.endTime)}
             </div>
-            <div className="what">
-              <strong>{item.title}</strong>
-              <span>{item.detail}</span>
-            </div>
+            <strong>{item.title}</strong>
+            <span>{item.detail}</span>
           </li>
         ))}
       </ol>
 
-      {note && <p className="muted">{note}</p>}
-      <p className="muted soft">Hours may vary, check before you go.</p>
-
-      <button type="button" className="secondary" onClick={onReset}>
-        Plan again
-      </button>
+      {note && <p className="notice">{note}</p>}
+      <p className="soft">Hours may vary, check before you go.</p>
     </section>
   );
 }

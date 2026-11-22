@@ -70,6 +70,11 @@ export function formatNY(iso: string | Date): string {
   });
 }
 
+// "Nov 22" in Boston time.
+export function formatDateNY(iso: string | Date): string {
+  return new Date(iso).toLocaleDateString("en-US", { timeZone: TZ, month: "short", day: "numeric" });
+}
+
 function toMinutes(hhmm: string): number {
   const [h, m] = hhmm.split(":").map(Number);
   return h * 60 + m;
