@@ -55,4 +55,4 @@ M5 polish, README, demo script.
 Cut order if short: domain, Tiger Data, alerts banner, surprise square. Never cut M1, M3a, or the last-ride warning.
 
 ## Status (user ticks)
-[ ] M0  [ ] M1  [ ] M2  [ ] M3a  [ ] M3b  [ ] M4  [ ] M5
+[x] M0  [ ] M1  [ ] M2  [ ] M3a  [ ] M3b  [ ] M4  [ ] M5
