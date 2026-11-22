@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "check:planner": "tsx lib/planner/check.ts"
+    "check:planner": "tsx lib/planner/check.ts",
+    "spike:mbta": "tsx scripts/mbta-spike.ts"
   },
   "dependencies": {
     "next": "16.4.6",

@@ -281,6 +281,56 @@ p {
   font-size: var(--text-sm);
 }
 
+/* ---------- "Tell me what you need today" ---------- */
+.tell {
+  margin-bottom: var(--s2);
+}
+
+.tell label {
+  display: block;
+  font-family: var(--font-head);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  margin-bottom: var(--s2);
+}
+
+.tell textarea {
+  width: 100%;
+  padding: var(--s3) var(--s4);
+  border: 2px solid var(--sand);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  resize: vertical;
+}
+
+.tell-button {
+  margin-top: var(--s3);
+}
+
+/* ---------- Confirm boxes ---------- */
+.confirm {
+  margin: var(--s4) 0;
+  border-color: var(--clay);
+  background: var(--clay-soft);
+}
+
+.confirm p {
+  margin: var(--s2) 0 0;
+}
+
+.confirm-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s3);
+}
+
+.confirm-buttons .btn {
+  margin-top: var(--s4);
+  min-height: var(--tap);
+}
+
 /* ---------- Segmented switch (Overview / One step) ---------- */
 .segmented {
   display: grid;

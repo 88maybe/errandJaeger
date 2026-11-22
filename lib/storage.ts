@@ -23,6 +23,12 @@ export type Outing = {
   ticked: number[]; // positions (0-8) of squares you have ticked
   step: number; // which step you are on in the one-step view
   finishedAt?: string; // set when you press "Finish outing"
+  // Friendlier wording from the AI. Only ever rewords; every fact still comes from the planner.
+  ai?: {
+    bingo?: "done" | "failed";
+    steps?: "done" | "failed";
+    actions?: string[]; // one simple action per timeline item (same order as buildTimeline)
+  };
 };
 
 const KEYS = {
@@ -74,16 +80,26 @@ export async function getHistory(): Promise<Outing[]> {
   return read<Outing[]>(KEYS.history, []);
 }
 
-// Marks the current outing as finished, moves it into history, and clears the current slot.
-export async function finishOuting(): Promise<Outing | null> {
-  const current = await getOuting();
-  if (!current) return null;
-  const finished: Outing = { ...current, finishedAt: new Date().toISOString() };
-  write(KEYS.history, [...(await getHistory()), finished]);
+// Clears the current (unfinished) outing without counting it.
+export async function discardOuting(): Promise<void> {
   try {
     window.localStorage.removeItem(KEYS.outing);
   } catch {
     // ignore
   }
+}
+
+// Marks the current outing as finished, moves it into history, and clears the current slot.
+// An outing with nothing ticked does NOT count: it is cleared and null is returned.
+export async function finishOuting(): Promise<Outing | null> {
+  const current = await getOuting();
+  if (!current) return null;
+  if (current.ticked.length === 0) {
+    await discardOuting();
+    return null;
+  }
+  const finished: Outing = { ...current, finishedAt: new Date().toISOString() };
+  write(KEYS.history, [...(await getHistory()), finished]);
+  await discardOuting();
   return finished;
 }

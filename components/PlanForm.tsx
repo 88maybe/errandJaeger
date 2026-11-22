@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { aiParse } from "@/lib/ai/client";
+import { basicParse, hasAnything } from "@/lib/ai/fallback";
+import type { ParsedRequest } from "@/lib/ai/validate";
 import { START_POINTS } from "@/lib/planner/places";
 import { nyParts } from "@/lib/planner/time";
 import { NEED_LABEL } from "@/lib/planner/timeline";
@@ -33,6 +36,11 @@ export default function PlanForm({ initial, onSubmit }: { initial: Prefs; onSubm
   const [loop, setLoop] = useState(initial.loop);
   const [calm, setCalm] = useState(initial.calm);
 
+  // "Tell me what you need today": text -> prefilled choices (you still confirm and press the button).
+  const [text, setText] = useState("");
+  const [reading, setReading] = useState(false);
+  const [readNote, setReadNote] = useState<string | null>(null);
+
   // Fill in the time after the page loads (so server and phone never disagree).
   useEffect(() => setStartHHMM(nextQuarterHour()), []);
 
@@ -41,6 +49,38 @@ export default function PlanForm({ initial, onSubmit }: { initial: Prefs; onSubm
 
   const ready = needs.length > 0 && startHHMM !== "";
 
+  // Fill the form from a parsed request. Anything the request didn't mention stays as it was.
+  function applyParsed(p: ParsedRequest) {
+    if (p.needs.length > 0) setNeeds(p.needs);
+    if (p.startTime) setStartHHMM(p.startTime);
+    const point = START_POINTS.find((s) => s.name === p.start);
+    if (point) setStart(point);
+    if (p.loop !== null) setLoop(p.loop);
+    if (p.calm !== null) setCalm(p.calm);
+  }
+
+  async function readRequest() {
+    if (!text.trim() || reading) return;
+    setReading(true);
+    setReadNote(null);
+
+    // Try the AI first. If it is off, slow, or gives something unusable, use simple keyword matching instead.
+    const fromAi = await aiParse(text);
+    const parsed = fromAi && hasAnything(fromAi) ? fromAi : basicParse(text);
+    setReading(false);
+
+    if (!hasAnything(parsed)) {
+      setReadNote("I couldn't pick anything out of that. You can use the buttons below instead.");
+      return;
+    }
+    applyParsed(parsed);
+    setReadNote(
+      fromAi && hasAnything(fromAi)
+        ? "I filled in the choices below. Please check them, then press Make my plan."
+        : "I filled in what I could with simple matching. Please check the choices below.",
+    );
+  }
+
   return (
     <form
       onSubmit={(e) => {
@@ -48,6 +88,26 @@ export default function PlanForm({ initial, onSubmit }: { initial: Prefs; onSubm
         if (ready) onSubmit({ needs, startHHMM, loop, calm, start });
       }}
     >
+      <div className="tell">
+        <label htmlFor="tell-me">Tell me what you need today</label>
+        <textarea
+          id="tell-me"
+          rows={3}
+          maxLength={500}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="For example: groceries and a coffee near Copley around 3pm, loop back, keep it calm"
+        />
+        <button type="button" className="btn btn-secondary tell-button" onClick={readRequest} disabled={reading || !text.trim()}>
+          {reading ? "Reading…" : "Fill in the choices for me"}
+        </button>
+        {readNote && (
+          <p className="soft" role="status">
+            {readNote}
+          </p>
+        )}
+      </div>
+
       <h2>What do you need today?</h2>
       <div className="chips">
         {NEED_ORDER.map((need) => (

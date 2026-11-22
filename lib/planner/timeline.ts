@@ -6,6 +6,7 @@ import type { Need, RoutePlan } from "./types";
 export type TimelineItem = {
   kind: "walk" | "stop";
   title: string; // e.g. "Walk to Trader Joe's" or "Trader Joe's"
+  place: string; // the real place this item is about (the walk's destination, or the stop itself)
   detail: string; // e.g. "Head north-east. About 9 min (estimate)."
   startTime: string; // ISO
   endTime: string; // ISO
@@ -27,6 +28,7 @@ export function buildTimeline(plan: RoutePlan): TimelineItem[] {
     items.push({
       kind: "walk",
       title: `Walk to ${leg.to}`,
+      place: leg.to,
       detail: leg.instruction,
       startTime: leg.startTime,
       endTime: addMinutes(new Date(leg.startTime), leg.durationMin).toISOString(),
@@ -38,6 +40,7 @@ export function buildTimeline(plan: RoutePlan): TimelineItem[] {
     items.push({
       kind: "stop",
       title: stop.place.name,
+      place: stop.place.name,
       detail: `${NEED_LABEL[stop.need]}. About ${stop.dwellMin} min here (estimate).`,
       startTime: stop.arriveAt,
       endTime: stop.leaveAt,

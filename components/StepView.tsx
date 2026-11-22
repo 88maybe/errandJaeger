@@ -6,13 +6,23 @@ import type { RoutePlan } from "@/lib/planner/types";
 type Step = { kind: "start" | "walk" | "stop" | "end"; title: string; detail: string; time?: string };
 
 // One big step at a time, with Back and Next.
-export default function StepView({ plan, step, onStep }: { plan: RoutePlan; step: number; onStep: (n: number) => void }) {
+export default function StepView({
+  plan,
+  step,
+  actions,
+  onStep,
+}: {
+  plan: RoutePlan;
+  step: number;
+  actions?: string[]; // AI one-action wording per timeline item (empty string = use the standard text)
+  onStep: (n: number) => void;
+}) {
   const steps: Step[] = [
     { kind: "start", title: `Start from ${plan.start.name}`, detail: `Leave at ${formatNY(plan.leaveBy)}.` },
-    ...buildTimeline(plan).map((item) => ({
+    ...buildTimeline(plan).map((item, i) => ({
       kind: item.kind,
       title: item.title,
-      detail: item.detail,
+      detail: actions?.[i] || item.detail, // simple action if we have one, else the standard text
       time: `${formatNY(item.startTime)} to ${formatNY(item.endTime)}`,
     })),
     { kind: "end", title: "That's everything", detail: "Open your bingo card to tick things off." },

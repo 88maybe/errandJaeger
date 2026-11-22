@@ -4,7 +4,7 @@ export default function StatsCards({ stats }: { stats: Stats }) {
   const tiles = [
     { value: stats.outings, label: "Outings" },
     { value: stats.placesVisited, label: "Places visited" },
-    { value: `~${stats.minutesWalked}`, label: "Minutes walked (estimate)" },
+    { value: `~${stats.minutesWalked} min`, label: "Planned walking time (estimate)" },
     { value: stats.streak, label: "Day streak" },
   ];
   return (

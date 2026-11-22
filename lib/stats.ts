@@ -6,7 +6,7 @@ import { nyParts } from "./planner/time";
 export type Stats = {
   outings: number;
   placesVisited: number;
-  minutesWalked: number; // ESTIMATE: the planned walking time, not tracked
+  minutesWalked: number; // ESTIMATE: the planned walking time, not tracked (shown as "Planned walking time")
   streak: number; // days in a row with a finished outing
 };
 
@@ -33,7 +33,8 @@ export function computeStreak(finishedDates: Date[], now: Date = new Date()): nu
 }
 
 export function computeStats(history: Outing[], now: Date = new Date()): Stats {
-  const finished = history.filter((o) => o.finishedAt);
+  // Only finished outings with at least one tick count.
+  const finished = history.filter((o) => o.finishedAt && o.ticked.length > 0);
   return {
     outings: finished.length,
     // Stop squares you ticked.

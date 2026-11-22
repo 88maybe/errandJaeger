@@ -5,6 +5,7 @@ export type Square = {
   id: string;
   label: string;
   kind: "stop" | "extra" | "free";
+  place?: string; // for stop squares: the real place's short name (never changed by AI)
 };
 
 // Always on the card (as long as there is room): the three "fun extras".
@@ -25,7 +26,7 @@ const MORE_EXTRAS = [
 ];
 
 // A short name for a card square: "Boston Public Library (Central, Copley Sq)" -> "Boston Public Library".
-function shortName(name: string): string {
+export function shortName(name: string): string {
   return name.replace(/\s*\(.*\)\s*$/, "");
 }
 
@@ -64,6 +65,7 @@ export function buildCard(plan: RoutePlan, seed: string): Square[] {
     id: `stop-${s.place.id}`,
     label: shortName(s.place.name),
     kind: "stop",
+    place: shortName(s.place.name),
   }));
 
   const extraLabels = [...CORE_EXTRAS, ...shuffle(MORE_EXTRAS, random)];

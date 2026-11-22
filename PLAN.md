@@ -43,8 +43,14 @@ Option A: Google Directions API (transit + walking) if a Maps key exists.
 Option B: MBTA V3 stops/routes/predictions + small hand-built station graph for the launch area + a free foot-routing service for walking steps.
 Where platform info is missing, show direction by destination terminal. Ask the user which option before building.
 
-## Gemini (lib/ai)
-parseRequest(text) -> structured needs (validated JSON). writeBingo(plan) -> 9 squares. writeSteps(plan, mode) -> short plain steps. Fallback to templates on failure.
+## Gemini (lib/ai) - built in M2
+Server-side only: app/api/ai/{parse,bingo,steps} call lib/ai/gemini.ts (generateContent, key from GEMINI_API_KEY, 8s timeout).
+- parse: "Tell me what you need today" -> needs/start/time/loop/calm. Only PREFILLS the form; the user confirms.
+- bingo: friendlier names for stop squares. Must keep the real place name.
+- steps (calm mode): one simple action per step. Must keep the place, every number and direction from the planner's text.
+- lib/ai/validate.ts throws away anything invented. Fallbacks: lib/ai/fallback.ts (keyword parser); template text for bingo/steps.
+- Default model gemini-3.5-flash-lite (fast in testing; gemini-3.8-flash gave 503 at the time). Override with GEMINI_MODEL.
+- Per-IP rate limit in lib/ai/guard.ts (best effort on serverless).
 
 ## UI
 Mobile-first, big tap targets, high contrast, calm palette, no autoplay animation (respect reduced motion), plain language. Screens: Home -> Plan -> Bingo card (tap to mark done) -> Done/stats.
@@ -60,4 +66,7 @@ M5 polish, README, demo script.
 Cut order if short: domain, Tiger Data, alerts banner, surprise square. Never cut M1, M3a, or the last-ride warning.
 
 ## Status (user ticks)
-[x] M0  [ ] M1  [ ] M2  [ ] M3a  [ ] M3b  [ ] M4  [ ] M5
+[x] M0  [x] M1  [x] M2  [ ] M3a  [ ] M3b  [ ] M4  [ ] M5
+
+Notes: M2's calm mode currently means shorter walks plus one-step view; "fewer transfers, off-peak" needs transit (M3a).
+Places hours are from memory (see data/places.json _note); spot-check before the demo.
