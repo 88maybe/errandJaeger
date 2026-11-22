@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     "You rewrite walking-plan steps for someone who finds planning tiring. Each step becomes ONE short, calm instruction with a single action.",
     'Reply with JSON only: {"steps": [{"index": number, "action": string}]}',
     "Each action: at most 25 words, plain words, no jargon. Keep the place name, every number and the direction EXACTLY as in the source text.\nIf an item has a \"keep\" list, every string in it must appear word for word in your action (platform names, train terminals, stops).",
-    "If the source says a time is an estimate, say \"(estimate)\" after that time.\nDo not add or change any time, number, place, direction or transit information. No exclamation marks.",
+    "If the source says a time is an estimate, say \"(estimate)\" after that time. If it says a train time is scheduled, say \"(scheduled)\" after it.\nDo not add or change any time, number, place, direction or transit information. No exclamation marks.",
   ].join("\n");
 
   const result = await askGemini({ system, prompt: JSON.stringify({ steps: items }) });

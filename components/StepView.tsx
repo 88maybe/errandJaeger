@@ -3,7 +3,7 @@ import { formatNY } from "@/lib/planner/time";
 import { buildSteps } from "@/lib/planner/timeline";
 import type { RoutePlan } from "@/lib/planner/types";
 
-type Step = { kind: "start" | "walk" | "stop" | "transit" | "end"; title: string; detail: string; time?: string };
+type Step = { kind: "start" | "walk" | "stop" | "transit" | "end"; title: string; detail: string; time?: string; warning?: string };
 
 // One big step at a time, with Back and Next.
 export default function StepView({
@@ -23,6 +23,7 @@ export default function StepView({
       kind: item.kind,
       title: item.title,
       detail: actions?.[i] || item.detail, // simple action if we have one, else the standard text
+      warning: item.warning,
       time: `${formatNY(item.startTime)} to ${formatNY(item.endTime)}`,
     })),
     { kind: "end", title: "That's everything", detail: "Open your bingo card to tick things off." },
@@ -45,6 +46,11 @@ export default function StepView({
         {current.time && <p className="step-time">{current.time}</p>}
         <h2 className="step-title">{current.title}</h2>
         <p className="step-detail">{current.detail}</p>
+        {current.warning && (
+          <p className="step-warning" role="alert">
+            {current.warning}
+          </p>
+        )}
       </div>
 
       <div className="step-buttons">

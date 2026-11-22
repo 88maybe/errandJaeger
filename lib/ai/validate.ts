@@ -74,6 +74,7 @@ export function validateActions(raw: unknown, items: StepFacts[]): Record<number
     if (!includesName(action, item.place)) continue;
     if (item.keep && !item.keep.every((k) => (/^\d+$/.test(k) ? new RegExp(`\\b${k}\\b`).test(action) : includesName(action, k)))) continue; // dropped a transit fact
     if (/estimate/i.test(item.text) && !/estimate/i.test(action)) continue; // time estimates must stay labelled
+    if (/scheduled/i.test(item.text) && !/scheduled/i.test(action)) continue; // scheduled times must stay labelled
     const knownNumbers = new Set(numbersIn(item.text));
     if (numbersIn(action).some((n) => !knownNumbers.has(n))) continue; // invented a time or number
     const knownDirections = new Set(compassIn(item.text));

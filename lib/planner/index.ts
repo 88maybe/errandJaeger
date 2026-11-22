@@ -62,7 +62,19 @@ function transitTrip(from: Point, to: Point, clock: Date, maxWalk: number, mode:
   }
   for (const ride of route.rides) {
     const duration = ride.waitMin + ride.rideMin;
-    const lines = rideLines(ride);
+    const parts = {
+      changeFrom: ride.changeFrom?.name ?? null,
+      lineLabel: lineLabel(ride),
+      boardAt: ride.from.name,
+      platform: ride.platform,
+      toward: ride.toward,
+      stops: ride.stops,
+      rideMin: ride.rideMin,
+      getOffAt: ride.to.name,
+      waitMin: ride.waitMin,
+      departText: null,
+    };
+    const lines = rideLines(parts);
     legs.push({
       type: "transit",
       from: ride.from.name,
@@ -70,16 +82,20 @@ function transitTrip(from: Point, to: Point, clock: Date, maxWalk: number, mode:
       startTime: t.toISOString(),
       durationMin: duration,
       instruction: lines.join(" "),
-      lineLabel: lineLabel(ride),
-      boardAt: ride.from.name,
-      platform: ride.platform,
-      toward: ride.toward,
-      stops: ride.stops,
-      getOffAt: ride.to.name,
-      waitMin: ride.waitMin,
-      rideMin: ride.rideMin,
+      lineLabel: parts.lineLabel,
+      boardAt: parts.boardAt,
+      platform: parts.platform,
+      toward: parts.toward,
+      stops: parts.stops,
+      getOffAt: parts.getOffAt,
+      waitMin: parts.waitMin,
+      rideMin: parts.rideMin,
+      changeFrom: parts.changeFrom,
       transferNote: transferNote(ride),
       lines,
+      stationId: ride.from.id,
+      routeIds: ride.sameWay.map((l) => l.routeId),
+      directionId: ride.directionId,
     });
     t = addMinutes(t, duration);
   }

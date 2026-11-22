@@ -2,15 +2,18 @@
 // Station ids, coordinates and platform names come from the MBTA API (see scripts/mbta-spike.ts).
 // Stop order and branch terminals are written by hand. Only the part of each line near the launch area is listed.
 
+import { TERMINALS } from "./terminals.generated";
+
 export type Station = { id: string; name: string; lat: number; lng: number };
 
 export type Line = {
   id: string; // our own short id
+  routeId: string; // the MBTA route id, e.g. "Green-B"
   name: string; // what riders call it, e.g. "Green Line (B)"
   family: "Green Line" | "Orange Line";
   stations: string[]; // station ids in order along the line
-  towardFirst: string; // terminal you head to when riding toward stations[0]
-  towardLast: string; // terminal you head to when riding toward the last station
+  towardFirst: string; // terminal you head to when riding toward stations[0] (from the MBTA routes data)
+  towardLast: string; // terminal you head to when riding toward the last station (from the MBTA routes data)
 };
 
 export const STATIONS: Station[] = [
@@ -41,43 +44,48 @@ const TRUNK = ["place-coecl", "place-armnl", "place-boyls", "place-pktrm", "plac
 export const LINES: Line[] = [
   {
     id: "green-b",
+    routeId: "Green-B",
     name: "Green Line (B)",
     family: "Green Line",
     stations: ["place-kencl", "place-hymnl", ...TRUNK],
-    towardFirst: "Boston College",
-    towardLast: "Government Center",
+    towardFirst: TERMINALS["Green-B"].first,
+    towardLast: TERMINALS["Green-B"].last,
   },
   {
     id: "green-c",
+    routeId: "Green-C",
     name: "Green Line (C)",
     family: "Green Line",
-    stations: ["place-kencl", "place-hymnl", ...TRUNK, "place-haecl", "place-north"],
-    towardFirst: "Cleveland Circle",
-    towardLast: "North Station",
+    stations: ["place-kencl", "place-hymnl", ...TRUNK], // ends at Government Center (checked against the MBTA)
+    towardFirst: TERMINALS["Green-C"].first,
+    towardLast: TERMINALS["Green-C"].last,
   },
   {
     id: "green-d",
+    routeId: "Green-D",
     name: "Green Line (D)",
     family: "Green Line",
     stations: ["place-fenwy", "place-kencl", "place-hymnl", ...TRUNK, "place-haecl", "place-north"],
-    towardFirst: "Riverside",
-    towardLast: "Union Square",
+    towardFirst: TERMINALS["Green-D"].first,
+    towardLast: TERMINALS["Green-D"].last,
   },
   {
     id: "green-e",
+    routeId: "Green-E",
     name: "Green Line (E)",
     family: "Green Line",
     stations: ["place-mfa", "place-nuniv", "place-symcl", "place-prmnl", ...TRUNK, "place-haecl", "place-north"],
-    towardFirst: "Heath Street",
-    towardLast: "Medford/Tufts",
+    towardFirst: TERMINALS["Green-E"].first,
+    towardLast: TERMINALS["Green-E"].last,
   },
   {
     id: "orange",
+    routeId: "Orange",
     name: "Orange Line",
     family: "Orange Line",
     stations: ["place-bbsta", "place-tumnl", "place-chncl", "place-dwnxg", "place-state", "place-haecl", "place-north"],
-    towardFirst: "Forest Hills",
-    towardLast: "Oak Grove",
+    towardFirst: TERMINALS["Orange"].first,
+    towardLast: TERMINALS["Orange"].last,
   },
 ];
 

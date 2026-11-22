@@ -1,6 +1,6 @@
 // Turns a RoutePlan into ONE list in time order: walk, stop, walk, stop...
 // Also picks the kind message to show when a plan is empty or partly empty.
-import { addMinutes, nyParts } from "./time";
+import { addMinutes, formatNY, nyParts } from "./time";
 import type { Need, RoutePlan, TransitLeg } from "./types";
 
 export type TimelineItem = {
@@ -11,6 +11,7 @@ export type TimelineItem = {
   startTime: string; // ISO
   endTime: string; // ISO
   lines?: string[]; // transit only: the facts as short sentences, one per line on screen
+  warning?: string; // loud last-train warning for this item (shown on screen, never reworded by AI)
   keep?: string[]; // words the AI must keep if it rewords this item (transit facts)
 };
 
@@ -42,7 +43,10 @@ export function buildSteps(plan: RoutePlan): TimelineItem[] {
       kind: "transit",
       title: leg.transferNote ?? `Board at ${leg.boardAt}`,
       place: leg.boardAt,
-      detail: `Go to the platform "${leg.platform}" at ${leg.boardAt}. Wait for the ${leg.lineLabel} toward ${toward}. About ${leg.waitMin} min wait (estimate).`,
+      detail: `Go to the platform "${leg.platform}" at ${leg.boardAt}. Wait for the ${leg.lineLabel} toward ${toward}. ${
+        leg.departAt ? `Next train leaves at ${formatNY(leg.departAt)} (scheduled).` : `About ${leg.waitMin} min wait (estimate).`
+      }`,
+      warning: leg.lastWarning ?? undefined,
       startTime: leg.startTime,
       endTime: boardEnd,
       keep: [leg.platform, ...leg.toward],
@@ -75,6 +79,7 @@ export function buildTimeline(plan: RoutePlan): TimelineItem[] {
         startTime: leg.startTime,
         endTime,
         lines: leg.lines,
+        warning: leg.lastWarning ?? undefined,
         keep: transitKeep(leg),
       });
     } else {

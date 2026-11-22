@@ -40,6 +40,11 @@ export default function Timeline({ plan }: { plan: RoutePlan }) {
             ) : (
               <span>{item.detail}</span>
             )}
+            {item.warning && (
+              <p className="step-warning" role="alert">
+                {item.warning}
+              </p>
+            )}
           </li>
         ))}
       </ol>

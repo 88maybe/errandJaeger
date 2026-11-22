@@ -1,23 +1,41 @@
-// Turns a ride into short plain sentences. All facts come from the map and router, never from AI.
-import { CHANGE_WALK_MIN, WAIT_MIN, type Ride } from "./route";
+// Turns a ride into short plain sentences. All facts come from the map, the router and the MBTA schedule, never from AI.
+import { CHANGE_WALK_MIN, type Ride } from "./route";
 
 const joinOr = (items: string[]) => (items.length <= 1 ? items.join("") : `${items.slice(0, -1).join(", ")} or ${items[items.length - 1]}`);
+export const towardText = (toward: string[]) => joinOr(toward);
 
 // "Green Line" when several branches work, "Green Line (D)" when only one does.
 export const lineLabel = (ride: Ride) => (ride.sameWay.length > 1 ? ride.line.family : ride.line.name);
 
-export function rideLines(ride: Ride): string[] {
+export type RideParts = {
+  changeFrom: string | null;
+  lineLabel: string;
+  boardAt: string;
+  platform: string;
+  toward: string[];
+  stops: number;
+  rideMin: number;
+  getOffAt: string;
+  waitMin: number;
+  departText: string | null; // e.g. "3:20 PM" when we know the real scheduled departure
+};
+
+export function rideLines(r: RideParts): string[] {
   const lines: string[] = [];
-  if (ride.changeFrom) {
-    lines.push(`Change at ${ride.changeFrom.name} to the ${lineLabel(ride)}: about ${CHANGE_WALK_MIN} min walk inside the station (estimate).`);
+  if (r.changeFrom) {
+    lines.push(`Change at ${r.changeFrom} to the ${r.lineLabel}: about ${CHANGE_WALK_MIN} min walk inside the station (estimate).`);
   }
-  lines.push(`Board at ${ride.from.name}, platform: ${ride.platform}.`);
-  lines.push(`Take the ${lineLabel(ride)} toward ${joinOr(ride.toward)}.`);
-  lines.push(`Ride ${ride.stops} ${ride.stops === 1 ? "stop" : "stops"}: about ${ride.rideMin} min (estimate), after about ${WAIT_MIN} min waiting for the train (estimate).`);
-  lines.push(`Get off at ${ride.to.name}.`);
+  lines.push(`Board at ${r.boardAt}, platform: ${r.platform}.`);
+  lines.push(`Take the ${r.lineLabel} toward ${joinOr(r.toward)}.`);
+  lines.push(
+    r.departText
+      ? `Next train leaves at ${r.departText} (scheduled).`
+      : `Wait about ${r.waitMin - (r.changeFrom ? CHANGE_WALK_MIN : 0)} min for the train (estimate).`,
+  );
+  lines.push(`Ride ${r.stops} ${r.stops === 1 ? "stop" : "stops"}: about ${r.rideMin} min (estimate).`);
+  lines.push(`Get off at ${r.getOffAt}.`);
   return lines;
 }
 
-export function transferNote(ride: Ride): string | null {
-  return ride.changeFrom ? `Change at ${ride.changeFrom.name} to the ${lineLabel(ride)}.` : null;
-}
+export const transferNote = (ride: Ride): string | null =>
+  ride.changeFrom ? `Change at ${ride.changeFrom.name} to the ${lineLabel(ride)}.` : null;

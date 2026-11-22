@@ -728,3 +728,59 @@ p {
     transition: none !important;
   }
 }
+
+/* ---------- Train notices (last train, alerts) ---------- */
+.train-notices {
+  display: grid;
+  gap: var(--s3);
+  margin-bottom: var(--s4);
+}
+
+.alert-loud {
+  border: 3px solid var(--clay);
+  background: #fde8df;
+  color: #5a1f0c;
+  border-radius: 14px;
+  padding: var(--s3) var(--s4);
+}
+
+.alert-loud strong {
+  display: block;
+  font-size: var(--text-lg);
+}
+
+.alert-loud ul {
+  margin: var(--s2) 0 0;
+  padding-left: var(--s5);
+}
+
+.step-warning {
+  margin: var(--s2) 0 0;
+  padding: var(--s2) var(--s3);
+  border: 2px solid var(--clay);
+  border-radius: 10px;
+  background: #fde8df;
+  color: #5a1f0c;
+  font-weight: 700;
+}
+
+.alerts {
+  border: 2px solid var(--sand);
+  border-radius: 14px;
+  padding: var(--s2) var(--s4);
+  background: #fff;
+}
+
+.alerts summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.alerts ul {
+  margin: 0;
+  padding-left: var(--s5);
+  font-size: var(--text-sm);
+}

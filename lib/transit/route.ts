@@ -16,6 +16,7 @@ export type Ride = {
   from: Station;
   to: Station;
   toward: string[]; // terminals to look for, one per line in sameWay
+  directionId: 0 | 1; // MBTA direction: 0 = west or south, 1 = east or north
   platform: string; // where to board, the MBTA platform name
   stops: number; // how many stops you ride (not counting the one you board at)
   rideMin: number; // ESTIMATE
@@ -132,7 +133,8 @@ export function findRoute(fromId: string, toId: string, mode: "normal" | "calm")
         sameWay,
         from: stationById(first.state.station),
         to: stationById(last.state.station),
-        toward: sameWay.map((l) => (toward === "first" ? l.towardFirst : l.towardLast)),
+        directionId: toward === "first" ? 0 : 1,
+        toward: [...new Set(sameWay.map((l) => (toward === "first" ? l.towardFirst : l.towardLast)))], // no repeats (B and C both end at Government Center)
         platform,
         stops: Math.abs(idxTo - idxFrom),
         rideMin: Math.max(1, Math.round(rideMin)),

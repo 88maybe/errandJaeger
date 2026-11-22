@@ -20,7 +20,7 @@ Neurodivergent riders and walkers (ADHD, autism) who find planning tiring: juggl
 - **AI only helps with words** (Google Gemini, server-side): it can read "Tell me what you need today" to prefill the form, and make bingo squares and calm-mode steps friendlier. It never invents places or times. Anything it returns is checked, and every AI feature has a non-AI fallback, so the app works with no key at all.
 - Everything is saved in your browser (no account needed).
 
-Transit legs (Green and Orange Lines near the launch area) use a small hand-built map with estimated ride times. Not built yet: live train times, last-ride warnings, and a database. See PLAN.md.
+Train rides (Green and Orange Lines near the launch area) use a small hand-built map. Departure times, last-train warnings and alerts come from the real MBTA schedule (server side); ride time is an estimate. If the MBTA cannot be reached, the plan still works and says so. Not built yet: live predictions and a database. See PLAN.md.
 
 ## Run it
 
@@ -50,7 +50,7 @@ Set these in `.env.local`. **Never commit that file** (it is already git-ignored
 | --- | --- | --- |
 | `GEMINI_API_KEY` | The AI features | Optional. Without it the app uses simple keyword matching and plain text. Used on the server only, never sent to the browser. |
 | `GEMINI_MODEL` | Choosing a model | Optional. Default is `gemini-3.5-flash-lite`. |
-| `MBTA_API_KEY` | MBTA spike script | Optional. Works without a key at a lower rate limit. |
+| `MBTA_API_KEY` | Train times and alerts | Optional. Used on the server only. Without it the MBTA allows about 20 requests a minute, and results are cached for a few minutes. |
 | `DATABASE_URL` | Later (Tiger Data) | Not used yet. |
 
 ## Project map

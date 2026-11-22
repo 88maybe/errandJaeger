@@ -95,7 +95,10 @@ export function hoursForDay(hours: Record<string, string>, dayKey: string): [num
 // Open when you arrive AND still open when you'd be done (arrival + time spent).
 export function isOpenFor(hours: Record<string, string>, arrive: Date, stayMin: number): boolean {
   const { dayKey, minutes } = nyParts(arrive);
-  return hoursForDay(hours, dayKey).some(([open, close]) => minutes >= open && minutes + stayMin <= close);
+  // A place open all day (00:00-24:00) stays open past midnight too (an outdoor spot, for example).
+  return hoursForDay(hours, dayKey).some(
+    ([open, close]) => (open === 0 && close === 1440) || (minutes >= open && minutes + stayMin <= close),
+  );
 }
 
 export { DAY_KEYS };

@@ -8,8 +8,10 @@ import { buildCard } from "@/lib/bingo";
 import { planRoute } from "@/lib/planner";
 import { PLACES } from "@/lib/planner/places";
 import { todayAtNY } from "@/lib/planner/time";
+import { applyTrainData } from "@/lib/planner/schedule";
 import { emptyPlanMessage } from "@/lib/planner/timeline";
 import type { RoutePlan } from "@/lib/planner/types";
+import { fetchTrainData } from "@/lib/transit/client";
 import { getOuting, getPrefs, saveOuting, savePrefs, type Outing, type Prefs } from "@/lib/storage";
 
 export default function Home() {
@@ -17,6 +19,7 @@ export default function Home() {
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [current, setCurrent] = useState<Outing | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false); // looking up real train times
   // A finished new plan waiting for you to say "replace my current one".
   const [waiting, setWaiting] = useState<{ plan: RoutePlan; mode: "normal" | "calm" } | null>(null);
 
@@ -38,18 +41,28 @@ export default function Home() {
     setWaiting(null);
 
     const mode = values.calm ? "calm" : "normal";
-    const plan = planRoute(
+    const estimated = planRoute(
       { needs: values.needs, startTime: todayAtNY(values.startHHMM), loop: values.loop, mode, start: values.start },
       PLACES,
     );
 
     // Nothing fits: show the kind message here, and keep any plan already in progress.
-    const empty = emptyPlanMessage(plan);
+    const empty = emptyPlanMessage(estimated);
     if (empty) {
       setMessage(empty);
       return;
     }
     setMessage(null);
+
+    // Train rides: swap the estimated waits for the real scheduled times. If the lookup fails, the plan still works.
+    let plan = estimated;
+    if (estimated.legs.some((l) => l.type === "transit")) {
+      setChecking(true);
+      plan = applyTrainData(estimated, await fetchTrainData(estimated));
+      setChecking(false);
+    } else {
+      plan = applyTrainData(estimated, null);
+    }
 
     // A plan is already in progress: ask before replacing it.
     if (current) {
@@ -91,6 +104,12 @@ export default function Home() {
       )}
 
       {prefs ? <PlanForm initial={prefs} onSubmit={makePlan} /> : <p className="soft">Loading…</p>}
+
+      {checking && (
+        <p className="soft" role="status">
+          Checking train times…
+        </p>
+      )}
 
       {message && (
         <p className="kind-message" role="status">

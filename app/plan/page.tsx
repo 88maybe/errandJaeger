@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import StepView from "@/components/StepView";
 import Timeline from "@/components/Timeline";
+import TrainNotices from "@/components/TrainNotices";
 import { aiActions } from "@/lib/ai/client";
 import { shortName } from "@/lib/bingo";
 import { formatNY } from "@/lib/planner/time";
@@ -67,6 +68,8 @@ export default function PlanPage() {
       <p className="starting">
         Starting from: <strong>{outing.plan.start.name}</strong>
       </p>
+
+      <TrainNotices plan={outing.plan} />
 
       <div className="segmented" role="group" aria-label="How to see your plan">
         <button type="button" aria-pressed={activeView === "overview"} onClick={() => setView("overview")}>
