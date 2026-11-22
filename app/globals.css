@@ -2646,3 +2646,406 @@ button:disabled {
   padding: 0 10px;
   font-size: 0.85rem;
 }
+
+/* =========================================================
+   Final polish: title bar, chip groups, plan actions, Stim switch, brain dump sheet
+   ========================================================= */
+
+/* Title bar: compact, full width, the four-colour stripe along the bottom */
+.title-bar {
+  margin: calc(-1 * var(--s5)) calc(-1 * var(--s4)) var(--s3);
+  padding: var(--s3) var(--s4) var(--s3);
+  background: var(--paper);
+  border-bottom: 1.5px solid var(--sand);
+  position: relative;
+}
+.title-bar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1.5px;
+  height: 4px;
+  background: linear-gradient(90deg, var(--errands) 0 25%, var(--treats) 25% 50%, var(--wellbeing) 50% 75%, var(--warn) 75%);
+}
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+.title-bar h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.15;
+  color: var(--teal);
+  letter-spacing: -0.01em;
+}
+.title-bar p {
+  margin: var(--s1) 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+/* Category chips: three group buttons; the open group's options in one row below */
+.cat-chips {
+  display: block;
+  overflow: visible;
+  padding: 0 var(--s3);
+}
+.cat-groups {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s2);
+}
+.cat-group-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 var(--s2);
+  min-width: 0;
+}
+.cat-group-btn[aria-expanded="true"] {
+  border-color: var(--group-colour);
+  box-shadow: 0 0 0 2px var(--group-colour), var(--shadow);
+}
+.cat-group-btn.has-pick::before {
+  width: 12px;
+  height: 12px;
+  box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--group-colour);
+}
+.caret {
+  font-size: 0.75rem;
+  margin-left: 2px;
+}
+.cat-row {
+  display: flex;
+  gap: var(--s2);
+  overflow-x: auto;
+  margin: var(--s2) calc(-1 * var(--s3)) 0;
+  padding: 2px var(--s3) var(--s1);
+  scrollbar-width: none;
+}
+.cat-row::-webkit-scrollbar {
+  display: none;
+}
+.cat-row .cat-chip {
+  flex: none;
+}
+@keyframes cat-row-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.cat-row-in {
+  animation: cat-row-in 0.18s ease-out;
+}
+
+/* The hint right below the map */
+.map-hint {
+  margin: var(--s2) 0 0;
+}
+
+/* Plan buttons: one strong filled primary, one outlined secondary, an "i" beside each */
+.plan-actions {
+  margin-top: var(--s5);
+  padding-top: var(--s4);
+  border-top: 1.5px solid var(--sand);
+  display: grid;
+  gap: var(--s3);
+}
+.plan-actions .why-disabled,
+.plan-source {
+  margin: 0;
+  text-align: left;
+}
+.plan-source {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink);
+}
+.action-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+.action-row .btn {
+  flex: 1;
+  margin: 0;
+  min-width: 0;
+}
+.plan-actions .btn-primary:not(:disabled) {
+  background: var(--teal-deep);
+  border-color: var(--teal-deep);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--teal-deep) 60%, black);
+}
+.plan-actions .btn-secondary:not(:disabled) {
+  border-width: 2px;
+  border-color: var(--teal-deep);
+  color: var(--teal-deep);
+  background: var(--paper);
+}
+:root[data-theme="dark"] .plan-actions .btn-primary:not(:disabled) {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #0f1514;
+}
+:root[data-theme="dark"] .plan-actions .btn-secondary:not(:disabled) {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+.info-btn {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-soft);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  font-style: italic;
+  font-family: Georgia, serif;
+  cursor: pointer;
+}
+.info-btn[aria-expanded="true"] {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+.info-line {
+  margin: calc(-1 * var(--s1)) 0 0;
+  padding: var(--s2) var(--s3);
+  border-radius: 10px;
+  background: var(--sage);
+  color: var(--ink);
+  font-size: var(--text-sm);
+}
+/* Tertiary: plain text */
+.link-btn {
+  border: 0;
+  background: none;
+  padding: 4px 2px;
+  min-height: 32px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--teal);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+:root[data-theme="light"] .link-btn {
+  color: var(--teal-deep);
+}
+
+/* Stim mode: a compact switch near the bottom of Home */
+.stim-row {
+  margin-top: var(--s5);
+  padding: var(--s3) var(--s4);
+  border: 1.5px solid var(--sand);
+  border-radius: var(--radius);
+  background: var(--paper);
+  display: grid;
+  gap: 2px;
+}
+.stim-row small {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  padding-left: 58px;
+}
+.switch {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-height: 44px;
+  cursor: pointer;
+}
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.switch-track {
+  flex: none;
+  position: relative;
+  width: 46px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--sand);
+  transition: background-color var(--press) ease-out;
+}
+.switch-track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  transition: transform 0.15s ease-out;
+}
+.switch input:checked + .switch-track {
+  background: var(--treats);
+}
+.switch input:checked + .switch-track::after {
+  transform: translateX(18px);
+}
+.switch input:focus-visible + .switch-track {
+  outline: 3px solid var(--clay);
+  outline-offset: 2px;
+}
+.switch-label {
+  font-weight: 700;
+}
+
+/* Brain dump: an opener on Home, and a sheet with a header that never scrolls away */
+.dump-open {
+  width: 100%;
+  margin-top: var(--s4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  min-height: var(--tap);
+  padding: var(--s3) var(--s4);
+  border: 1.5px solid var(--sand);
+  border-left: 6px solid var(--treats);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+.dump-open small {
+  display: block;
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+.dump-open > span[aria-hidden] {
+  font-size: 1.5rem;
+  color: var(--ink-soft);
+}
+.dump-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 24;
+  background: rgb(0 0 0 / 0.3);
+}
+.dump-sheet {
+  position: fixed;
+  z-index: 25;
+  left: 0;
+  right: 0;
+  bottom: calc(64px + env(safe-area-inset-bottom));
+  max-width: 480px;
+  margin: 0 auto;
+  /* dvh follows the phone's keyboard and toolbars; vh is the fallback */
+  max-height: calc(100vh - 64px - env(safe-area-inset-bottom) - 24px);
+  max-height: calc(100dvh - 64px - env(safe-area-inset-bottom) - 24px);
+  display: flex;
+  flex-direction: column;
+  background: var(--paper-2);
+  border: 1.5px solid var(--sand);
+  border-bottom: 0;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -4px 18px rgb(0 0 0 / 0.18);
+}
+.dump-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  border-bottom: 1.5px solid var(--sand);
+  background: var(--paper-2);
+  border-radius: 20px 20px 0 0;
+}
+.dump-head h2 {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: 1.25;
+  min-width: 0;
+}
+.dump-head .sheet-close {
+  flex: none;
+  background: var(--paper);
+  color: var(--ink);
+}
+.dump-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--s3) var(--s4) calc(var(--s5) + env(safe-area-inset-bottom));
+}
+.dump-body textarea {
+  display: block;
+  width: 100%;
+  min-height: 88px;
+  resize: vertical;
+  padding: var(--s3);
+  border: 1.5px solid var(--sand);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+.dump-body > .btn {
+  margin-top: var(--s3);
+}
+.dump-body .dump-chip {
+  min-width: 0;
+}
+.dump-body .dump-main {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.dump-body .dump-actions {
+  flex-wrap: wrap;
+}
+.dump-body .dump-actions .btn {
+  flex: none;
+  white-space: nowrap;
+}
+.dump-body .dump-x {
+  flex: none;
+}
+:root[data-stim="on"] .dump-sheet {
+  animation: dump-up 0.22s ease-out;
+}
+:root[data-stim="off"] .dump-sheet {
+  animation: cat-row-in 0.18s ease-out;
+}
+@keyframes dump-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dump-sheet,
+  .cat-row-in {
+    animation: none !important;
+  }
+}
+.cat-group-btn::before {
+  flex: none;
+}

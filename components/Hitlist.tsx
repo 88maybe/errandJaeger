@@ -18,7 +18,7 @@ type Props = {
 // The tray of places you picked. Errands are the missions; treats and wellbeing are add-ons (rewards).
 export default function Hitlist({ items, stim, includeAddOns, justAdded, reducedMotion, onMove, onRemove, onIncludeAddOns }: Props) {
   if (items.length === 0) {
-    return <p className="hint">Tap a place on the map or in the list to add it to your hitlist.</p>;
+    return null; // the "tap a place" hint sits right below the map on Home
   }
   const hasAddOns = items.some((p) => !isMission(p));
   return (

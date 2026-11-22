@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Spinner, Working } from "@/components/Busy";
 import { aiParse } from "@/lib/ai/client";
+import { FLAGS } from "@/lib/flags";
 import { basicParse, hasAnything } from "@/lib/ai/fallback";
 import type { ParsedRequest } from "@/lib/ai/validate";
 import { START_POINTS } from "@/lib/planner/places";
@@ -40,9 +41,15 @@ type Props = {
   hitlistCount: number; // places picked on the map: when there are any, the plan visits those instead of "needs"
   busy?: boolean; // making the plan right now
   busyText?: string;
+  onClearHitlist?: () => void; // plan by type instead
 };
 
-export default function PlanForm({ initial, onSubmit, start, onStart, usingLocation, hitlistCount, busy = false, busyText = "Working…" }: Props) {
+const INFO = {
+  make: "Make my plan: plan for the start time I choose.",
+  now: "Leave now: plan starting this minute, with live train times.",
+};
+
+export default function PlanForm({ initial, onSubmit, start, onStart, usingLocation, hitlistCount, busy = false, busyText = "Working…", onClearHitlist }: Props) {
   // Start from what you chose last time.
   const [needs, setNeeds] = useState<Need[]>(initial.needs);
   const [startHHMM, setStartHHMM] = useState("");
@@ -54,6 +61,7 @@ export default function PlanForm({ initial, onSubmit, start, onStart, usingLocat
   const [text, setText] = useState("");
   const [reading, setReading] = useState(false);
   const [readNote, setReadNote] = useState<string | null>(null);
+  const [info, setInfo] = useState<"make" | "now" | null>(null); // the open "i" explanation
 
   // Fill in the time after the page loads (so server and phone never disagree).
   useEffect(() => setStartHHMM(nextQuarterHour()), []);
@@ -107,6 +115,7 @@ export default function PlanForm({ initial, onSubmit, start, onStart, usingLocat
         if (ready) onSubmit({ needs, startHHMM, loop, calm, bingo, start });
       }}
     >
+      {FLAGS.tellMe && (
       <div className="tell">
         <label htmlFor="tell-me">Tell me what you need today</label>
         <textarea
@@ -134,12 +143,9 @@ export default function PlanForm({ initial, onSubmit, start, onStart, usingLocat
           </p>
         )}
       </div>
+      )}
 
-      {hitlistCount > 0 ? (
-        <p className="soft plan-from-hitlist">
-          Your plan will use your hitlist ({hitlistCount} {hitlistCount === 1 ? "place" : "places"}). Empty the hitlist to pick by type instead.
-        </p>
-      ) : (
+      {hitlistCount === 0 && (
         <>
           <h2>What do you need today?</h2>
           <div className="chips">
@@ -188,26 +194,63 @@ export default function PlanForm({ initial, onSubmit, start, onStart, usingLocat
         </span>
       </label>
 
-      <button type="submit" className="btn btn-primary" disabled={!ready || busy} aria-busy={busy}>
-        {busy ? (
-          <>
-            <Spinner /> Working…
-          </>
-        ) : (
-          "Make my plan"
+      <div className="plan-actions">
+        {hitlistCount > 0 && (
+          <p className="plan-source">
+            Planning from your hitlist ({hitlistCount} {hitlistCount === 1 ? "place" : "places"})
+            {onClearHitlist && (
+              <>
+                {" · "}
+                <button type="button" className="link-btn" onClick={onClearHitlist} disabled={busy}>
+                  Clear
+                </button>
+              </>
+            )}
+          </p>
         )}
-      </button>
-      <button
-        type="button"
-        className="btn btn-secondary"
-        disabled={!hasSomething || busy}
-        onClick={() => onSubmit({ needs, startHHMM, leaveNow: true, loop, calm, bingo, start })}
-      >
-        Leave now
-      </button>
-      {!hasSomething && <p className="why-disabled">Pick at least one thing above, or add places from the map, to make a plan.</p>}
-      {hasSomething && !startHHMM && <p className="why-disabled">Choose a start time, or press Leave now.</p>}
-      <Working busy={busy} text={busyText} slowText="Still working. Train times can take a few seconds." />
+        {!hasSomething && <p className="why-disabled">Pick at least one thing above, or add places from the map, to make a plan.</p>}
+        {hasSomething && !startHHMM && <p className="why-disabled">Choose a start time, or press Leave now.</p>}
+
+        <div className="action-row">
+          <button type="submit" className="btn btn-primary" disabled={!ready || busy} aria-busy={busy}>
+            {busy ? (
+              <>
+                <Spinner /> Working…
+              </>
+            ) : (
+              "Make my plan"
+            )}
+          </button>
+          <InfoButton id="info-make" open={info === "make"} label="What does Make my plan do?" onToggle={() => setInfo(info === "make" ? null : "make")} />
+        </div>
+        {info === "make" && (
+          <p id="info-make" className="info-line">
+            {INFO.make}
+          </p>
+        )}
+
+        <div className="action-row">
+          <button type="button" className="btn btn-secondary" disabled={!hasSomething || busy} onClick={() => onSubmit({ needs, startHHMM, leaveNow: true, loop, calm, bingo, start })}>
+            Leave now
+          </button>
+          <InfoButton id="info-now" open={info === "now"} label="What does Leave now do?" onToggle={() => setInfo(info === "now" ? null : "now")} />
+        </div>
+        {info === "now" && (
+          <p id="info-now" className="info-line">
+            {INFO.now}
+          </p>
+        )}
+        <Working busy={busy} text={busyText} slowText="Still working. Train times can take a few seconds." />
+      </div>
     </form>
+  );
+}
+
+// A small "i" that shows a one-line explanation under its button.
+function InfoButton({ id, open, label, onToggle }: { id: string; open: boolean; label: string; onToggle: () => void }) {
+  return (
+    <button type="button" className="info-btn" aria-expanded={open} aria-controls={id} aria-label={label} onClick={onToggle}>
+      i
+    </button>
   );
 }

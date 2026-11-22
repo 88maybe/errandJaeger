@@ -94,6 +94,7 @@ export default function Home() {
   const [radius, setRadius] = useState(DEFAULT_RADIUS);
   const [includeAddOns, setIncludeAddOns] = useState(true);
   const [kind, setKind] = useState<KindId | null>(null);
+  const [openGroup, setOpenGroup] = useState<(typeof GROUPS)[number]["id"] | null>(null); // the expanded chip group (one at a time)
   const [found, setFound] = useState<Found[]>([]);
   const [loading, setLoading] = useState(false);
   const [sheetNote, setSheetNote] = useState<{ text: string; tone: "info" | "warn" } | null>(null);
@@ -408,12 +409,12 @@ export default function Home() {
 
   return (
     <main className={`home ${kind ? "has-sheet" : ""}`}>
-      <header className="brand brand-compact brand-row">
-        <div>
-          <h1>errandJaeger</h1>
-          <p>Turn today&apos;s errands into a calmer bingo walk.</p>
+      <header className="title-bar">
+        <div className="title-row">
+          <h1>Errand Jaeger</h1>
+          <ThemeToggle compact />
         </div>
-        <ThemeToggle compact />
+        <p>Boundless energy, bound to the plan. Boston errands for ADHD brains.</p>
       </header>
 
       {current && !waiting && (
@@ -441,10 +442,30 @@ export default function Home() {
       </Dialog>
 
       <div className={`map-wrap ${stim ? "is-lively" : "is-calm"}`}>
-        <div className="cat-chips" role="toolbar" aria-label="Search nearby">
-          {GROUPS.map((g) => (
-            <div key={g.id} className="cat-group" role="group" aria-label={g.label}>
-              <span className="cat-group-label">{g.label}</span>
+        <div className="cat-chips" aria-label="Search nearby" role="group">
+          <div className="cat-groups">
+            {GROUPS.map((g) => {
+              const isOpen = openGroup === g.id;
+              const hasPick = !!kind && kindById(kind)?.group === g.id;
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  className={`cat-chip cat-group-btn cat-${g.id} ${hasPick ? "has-pick" : ""}`}
+                  aria-expanded={isOpen}
+                  aria-controls={`cat-row-${g.id}`}
+                  onClick={() => setOpenGroup(isOpen ? null : g.id)}
+                >
+                  {g.label}
+                  <span className="caret" aria-hidden="true">
+                    {isOpen ? "▴" : "▾"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {GROUPS.filter((g) => g.id === openGroup).map((g) => (
+            <div key={g.id} id={`cat-row-${g.id}`} className={`cat-row ${reducedMotion ? "" : "cat-row-in"}`} role="group" aria-label={`${g.label} options`}>
               {KINDS.filter((k) => k.group === g.id).map((k) => (
                 <button
                   key={k.id}
@@ -494,6 +515,7 @@ export default function Home() {
           </button>
         </div>
       </div>
+      {hitlist.length === 0 && <p className="hint map-hint">Tap a place on the map or in the list to add it to your hitlist.</p>}
       {locNote && (
         <Banner
           tone="warn"
@@ -516,26 +538,6 @@ export default function Home() {
       )}
 
       <BrainDump onAddNearest={addNearest} onShow={(k) => search(k)} />
-
-      <label className="toggle stim-toggle">
-        <input
-          type="checkbox"
-          checked={stim}
-          onChange={(e) => {
-            setStim(e.target.checked);
-            applyStim(e.target.checked);
-            rememberSettings({ stim: e.target.checked });
-          }}
-        />
-        <span>
-          Stim mode {stim ? "on" : "off"}
-          <small>
-            {stim
-              ? "A livelier map, more places, side quests. Stops in the order you pick."
-              : "Fewer places and gentle fades. Errands first; add-ons are optional. Favorites come first."}
-          </small>
-        </span>
-      </label>
 
       {quickFavs.length > 0 && (
         <section className="favs" aria-label="Your favorites">
@@ -574,11 +576,35 @@ export default function Home() {
           hitlistCount={hitlist.length}
           busy={planBusy}
           busyText={checking ? "Checking train times…" : "Making your plan…"}
+          onClearHitlist={() => {
+            const before = hitlist;
+            updateHitlist([]);
+            toast({ kind: "info", text: "Cleared your hitlist.", next: "Pick by type below instead.", action: { label: "Undo", onClick: () => updateHitlist(before) } });
+          }}
         />
       ) : (
         <Skeleton rows={2} label="Loading" />
       )}
 
+      <div className="stim-row">
+        <label className="switch">
+          <input
+            type="checkbox"
+            role="switch"
+            checked={stim}
+            onChange={(e) => {
+              setStim(e.target.checked);
+              applyStim(e.target.checked);
+              rememberSettings({ stim: e.target.checked });
+            }}
+          />
+          <span className="switch-track" aria-hidden="true" />
+          <span className="switch-label">
+            Stim mode <strong>{stim ? "on" : "off"}</strong>
+          </span>
+        </label>
+        <small>{stim ? "Livelier map, more places, side quests, your order." : "Fewer places, gentle fades, errands first."}</small>
+      </div>
 
       {kind && now && (
         <NearbySheet
