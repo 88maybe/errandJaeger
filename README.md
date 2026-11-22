@@ -20,7 +20,7 @@ Neurodivergent riders and walkers (ADHD, autism) who find planning tiring: juggl
 - **AI only helps with words** (Google Gemini, server-side): it can read "Tell me what you need today" to prefill the form, and make bingo squares and calm-mode steps friendlier. It never invents places or times. Anything it returns is checked, and every AI feature has a non-AI fallback, so the app works with no key at all.
 - Everything is saved in your browser (no account needed).
 
-Train rides (Green and Orange Lines near the launch area) use a small hand-built map. Departure times, last-train warnings and alerts come from the real MBTA schedule (server side); ride time is an estimate. If the MBTA cannot be reached, the plan still works and says so. Live trip mode refreshes MBTA predictions every 30 seconds, and "I'm running late" re-times the rest of the plan. Every time shows a Live, Scheduled or Estimate chip. Not built yet: a database. See PLAN.md.
+Train rides (Green, Orange, Red and Blue Lines in central Boston) use a small hand-built map. The **Directions** screen (`/go`) shows Transit / Walk / Car options for the next stop and the chosen route on a map with simple steps. Walking and driving routes come from OSRM (OpenStreetMap routing); the map search uses OpenStreetMap (Overpass), with a saved snapshot (`data/osm-snapshot.json`) when no server answers. Departure times, last-train warnings and alerts come from the real MBTA schedule (server side); ride time is an estimate. If the MBTA cannot be reached, the plan still works and says so. Live trip mode refreshes MBTA predictions every 30 seconds, and "I'm running late" re-times the rest of the plan. Every time shows a Live, Scheduled or Estimate chip. Not built yet: a database. See PLAN.md.
 
 ## Run it
 
@@ -40,6 +40,8 @@ Other commands:
 npm run build           # production build
 npm run check:planner   # prints sample plans from the planner
 npm run spike:mbta      # read-only look at what the MBTA API offers (no app changes)
+npm run sync:terminals  # refresh line terminals, station positions and entrances from the MBTA
+npm run snapshot:places # save real OpenStreetMap places for the Boston core (fallback for the map search)
 ```
 
 ## Environment variables

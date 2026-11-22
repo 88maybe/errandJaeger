@@ -38,7 +38,15 @@ type Props = {
   hitIds: string[];
   favIds: string[];
   onPick: (id: string) => void;
+  // Directions mode (optional): lines to draw, points to mark, and an area to fit instead of the search circle.
+  routeLines?: RouteLine[];
+  points?: MapPoint[];
+  fitTo?: [number, number][]; // [lng, lat] points to keep in view
+  extraBottomPx?: number; // room taken by a sheet over the map's lower part
 };
+
+export type RouteLine = { coords: [number, number][]; colour: string; dotted: boolean };
+export type MapPoint = { lat: number; lng: number; kind: "start" | "end" | "station"; label: string; colour?: string };
 
 // A circle as a polygon, for the radius outline.
 function circle(c: LatLng, r: number) {
@@ -52,11 +60,23 @@ function circle(c: LatLng, r: number) {
   return { type: "Feature" as const, properties: {}, geometry: { type: "Polygon" as const, coordinates: [pts] } };
 }
 
+function routeData(lines: RouteLine[] | undefined) {
+  return {
+    type: "FeatureCollection" as const,
+    features: (lines ?? []).map((l) => ({
+      type: "Feature" as const,
+      properties: { colour: l.colour, dotted: l.dotted },
+      geometry: { type: "LineString" as const, coordinates: l.coords },
+    })),
+  };
+}
+
 // How many screen pixels is r metres at this zoom? (MapLibre uses 512-pixel tiles.)
 const metresToPx = (r: number, lat: number, zoom: number) => r / ((40075016.686 * Math.cos((lat * Math.PI) / 180)) / (512 * 2 ** zoom));
 
 export default function MapView(props: Props) {
-  const { center, user, results, radiusM, stim, reducedMotion, searchKey, hitIds, favIds, onPick } = props;
+  const { center, user, results, radiusM, stim, reducedMotion, searchKey, hitIds, favIds, onPick, routeLines, points, fitTo, extraBottomPx = 0 } = props;
+  const pointMarkers = useRef<MlMarker[]>([]);
   const box = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
   const libRef = useRef<typeof import("maplibre-gl") | null>(null);
@@ -68,8 +88,8 @@ export default function MapView(props: Props) {
   const pulse = useRef<{ marker: MlMarker; el: HTMLDivElement } | null>(null);
   const pickRef = useRef(onPick);
   pickRef.current = onPick;
-  const live = useRef({ center, radiusM });
-  live.current = { center, radiusM };
+  const live = useRef({ center, radiusM, routeLines });
+  live.current = { center, radiusM, routeLines };
 
   // Start the map once.
   useEffect(() => {
@@ -121,6 +141,7 @@ export default function MapView(props: Props) {
       cancelled = true;
       clearTimeout(timer);
       markers.current.forEach((m) => m.remove());
+      pointMarkers.current.forEach((m) => m.remove());
       userMarker.current?.remove();
       mapRef.current?.remove();
       mapRef.current = null;
@@ -130,6 +151,27 @@ export default function MapView(props: Props) {
 
   function addRadiusLayer(map: MlMap) {
     const { center: c, radiusM: r } = live.current;
+    // Route lines: rides solid in the line's colour, walks as dots.
+    if (!map.getSource("route")) map.addSource("route", { type: "geojson", data: routeData(live.current.routeLines) });
+    if (!map.getLayer("route-ride"))
+      map.addLayer({
+        id: "route-ride",
+        type: "line",
+        source: "route",
+        filter: ["==", ["get", "dotted"], false],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": ["get", "colour"], "line-width": 6 },
+      });
+    if (!map.getLayer("route-walk"))
+      map.addLayer({
+        id: "route-walk",
+        type: "line",
+        source: "route",
+        filter: ["==", ["get", "dotted"], true],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": ["get", "colour"], "line-width": 4, "line-dasharray": [0.1, 2] },
+      });
+    if (r <= 0) return; // directions mode: no search circle
     if (!map.getSource("radius")) map.addSource("radius", { type: "geojson", data: circle(c, r) });
     if (!map.getLayer("radius-fill")) map.addLayer({ id: "radius-fill", type: "fill", source: "radius", paint: { "fill-color": "#1f5f5b", "fill-opacity": 0.06 } });
     if (!map.getLayer("radius-line"))
@@ -158,10 +200,48 @@ export default function MapView(props: Props) {
     mapRef.current.setStyle(stim ? STYLE_LIVELY : STYLE_CALM);
   }, [stim, raster]);
 
-  // Move to the search spot and redraw the radius outline.
+  // Directions mode: draw the route and keep it in view.
+  const fitKey = fitTo ? JSON.stringify(fitTo) : "";
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
+    const src = map.getSource("route") as { setData?: (d: unknown) => void } | undefined;
+    src?.setData?.(routeData(routeLines));
+    if (!fitTo || fitTo.length === 0) return;
+    const lngs = fitTo.map((p) => p[0]);
+    const lats = fitTo.map((p) => p[1]);
+    map.fitBounds(
+      [
+        [Math.min(...lngs), Math.min(...lats)],
+        [Math.max(...lngs), Math.max(...lats)],
+      ],
+      { padding: { top: 40, left: 30, right: 30, bottom: 30 + extraBottomPx }, maxZoom: 16, duration: reducedMotion ? 0 : 500 },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeLines, fitKey, ready, extraBottomPx, reducedMotion]);
+
+  // Directions mode: start, end and station markers.
+  useEffect(() => {
+    const ml = libRef.current;
+    const map = mapRef.current;
+    pointMarkers.current.forEach((m) => m.remove());
+    pointMarkers.current = [];
+    if (!ml || !map || !ready || !points) return;
+    for (const p of points) {
+      const el = document.createElement("div");
+      el.className = `route-point route-${p.kind}`;
+      if (p.colour) el.style.setProperty("--dot", p.colour);
+      el.setAttribute("role", "img");
+      el.setAttribute("aria-label", p.label);
+      el.title = p.label;
+      pointMarkers.current.push(new ml.Marker({ element: el }).setLngLat([p.lng, p.lat]).addTo(map));
+    }
+  }, [points, ready]);
+
+  // Move to the search spot and redraw the radius outline.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || fitTo || radiusM <= 0) return;
     const src = map.getSource("radius") as { setData?: (d: unknown) => void } | undefined;
     src?.setData?.(circle(center, radiusM));
     const dLat = radiusM / 111320;

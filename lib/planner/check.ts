@@ -140,3 +140,44 @@ console.log(`Hitlist plan: ${hitPlan.stops.map((s) => `${s.place.name} (${s.need
 for (const w of hitPlan.warnings) console.log(`  warning: ${w}`);
 const hitOk = hitPlan.stops.length === 2 && hitPlan.stops[0].place.id === "osm-node-1" && hitPlan.warnings.some((w) => w.includes("unknown"));
 console.log(`Hitlist check: ${hitOk ? "OK (kept order, planned the unknown-hours place, warned about it)" : "PROBLEM"}`);
+
+// ---- Red and Blue Lines ----
+const describe = (r: ReturnType<typeof findRoute>) =>
+  r
+    ? `${r.rides.map((x) => `${x.walkLinkFrom ? `[walk ${x.walkLinkFrom.name} -> ${x.from.name}] ` : ""}${x.line.name} ${x.from.name} -> ${x.to.name}, ${x.stops} stops toward ${x.toward.join("/")} (platform "${x.platform}")`).join(" | ")} = ${r.totalMin} min (estimate)`
+    : "no route";
+for (const [a, b] of [
+  ["place-sstat", "place-bucen"],
+  ["place-aqucl", "place-kencl"],
+  ["place-harsq", "place-bbsta"],
+]) {
+  for (const m of ["normal", "calm"] as const) console.log(`${m}: ${describe(findRoute(a, b, m))}`);
+}
+const ssBu = findRoute("place-sstat", "place-bucen", "normal");
+const ssBuOk =
+  ssBu?.rides.length === 2 &&
+  ssBu.rides[0].line.id === "red" &&
+  ssBu.rides[0].to.id === "place-pktrm" &&
+  ssBu.rides[1].line.id === "green-b" &&
+  ssBu.rides[1].changeFrom?.id === "place-pktrm" &&
+  ssBu.rides[1].toward.includes("Boston College");
+console.log(`South Station -> BU Central check: ${ssBuOk ? "OK (Red to Park Street, change, Green B toward Boston College)" : "PROBLEM"}`);
+
+// ---- Directions: transit options between two points, and the walk segments with MBTA entrance names ----
+import { findTransitOptions, summarize } from "../directions/options";
+import { segmentsOf } from "../directions/segments";
+const ssPoint = { name: "Dewey Square", lat: 42.3522, lng: -71.0565 };
+const buPoint = { name: "BU Central", lat: 42.3503, lng: -71.1067 };
+const opts = findTransitOptions(ssPoint, buPoint, twoPm);
+for (const o of opts) {
+  const s = summarize(o.plan);
+  console.log(`Option [${o.tags.join(", ")}]: ${o.changes} change(s), ${s.totalMin} min (estimate)`);
+  for (const seg of segmentsOf(o.plan, ssPoint, buPoint)) {
+    console.log(
+      seg.kind === "walk"
+        ? `   walk ${seg.leg.durationMin} min (${seg.role})${seg.entrance ? `, entrance: ${seg.entrance}` : ""}`
+        : `   ride ${seg.leg.lineLabel} ${seg.leg.boardAt} -> ${seg.leg.getOffAt} (${seg.stations.map((x) => x.name).join(", ")})`,
+    );
+  }
+}
+console.log(`Directions check: ${opts.length >= 1 && opts.length <= 2 ? "OK" : "PROBLEM"} (${opts.length} option(s))`);

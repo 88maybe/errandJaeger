@@ -11,6 +11,7 @@ import { buildCard } from "@/lib/bingo";
 import { DEFAULT_RADIUS, DOWNTOWN, GROUPS, inArea, kindById, KINDS, RADII, type KindId } from "@/lib/nearby/categories";
 import { fetchNearby, isMission, measure, toPlace, type Found } from "@/lib/nearby/client";
 import type { NearbyPlace } from "@/lib/nearby/types";
+import { isLocationOn, setLocationOn } from "@/lib/location";
 import { planHitlist, planRoute } from "@/lib/planner";
 import { PLACES } from "@/lib/planner/places";
 import { todayAtNY } from "@/lib/planner/time";
@@ -70,7 +71,7 @@ export default function Home() {
   const [message, setMessage] = useState<string | null>(null);
   const [checking, setChecking] = useState(false); // looking up real train times
   // A finished new plan waiting for you to say "replace my current one".
-  const [waiting, setWaiting] = useState<{ plan: RoutePlan; mode: "normal" | "calm"; train?: Departures; leftNow?: boolean } | null>(null);
+  const [waiting, setWaiting] = useState<{ plan: RoutePlan; mode: "normal" | "calm"; train?: Departures; leftNow?: boolean; directions?: boolean } | null>(null);
 
   // Where you start: a picked start point, or your live location (never asked for until you press the button).
   const [start, setStart] = useState<Point>(DOWNTOWN);
@@ -114,6 +115,8 @@ export default function Home() {
     getHistory().then((h) => setVisited(new Set(h.flatMap((o) => o.plan.stops.map((s) => s.place.id)))));
     setNow(new Date());
     const t = setInterval(() => setNow(new Date()), 60_000);
+    // You turned on your location earlier in this tab: keep following it (no new question is asked).
+    if (isLocationOn()) locate();
     return () => {
       clearInterval(t);
       if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
@@ -140,6 +143,7 @@ export default function Home() {
   function stopLocation(note: string | null = null) {
     if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
     watchId.current = null;
+    setLocationOn(false);
     setUser(null);
     setLocating(false);
     setLocNote(note);
@@ -162,6 +166,7 @@ export default function Home() {
           return;
         }
         setLocating(false);
+        setLocationOn(true);
         setUser(here);
         if (first) {
           first = false;
@@ -270,11 +275,12 @@ export default function Home() {
   }
 
   // ---- Planning ----
-  async function saveAndGo(plan: RoutePlan, mode: "normal" | "calm", train?: Departures, leftNow?: boolean) {
+  // A plan made from the hitlist opens the directions (ways to get to the first stop); otherwise the plan.
+  async function saveAndGo(plan: RoutePlan, mode: "normal" | "calm", train?: Departures, leftNow?: boolean, directions?: boolean) {
     const id = Date.now().toString(36);
     await saveOuting({ id, createdAt: new Date().toISOString(), mode, plan, card: buildCard(plan, id), ticked: [], step: 0, train, leftNow });
     updateHitlist([]); // the hitlist became this plan
-    router.push("/plan");
+    router.push(directions ? "/go" : "/plan");
   }
 
   async function makePlan(values: FormValues) {
@@ -289,7 +295,8 @@ export default function Home() {
     const from: Point = user ? { name: "Your location", lat: user.lat, lng: user.lng } : start;
 
     let estimated: RoutePlan;
-    if (hitlist.length > 0) {
+    const fromHitlist = hitlist.length > 0;
+    if (fromHitlist) {
       // Stim mode on: your order. Off: the errands first (direct), then the add-ons if you want them.
       const missions = hitlist.filter(isMission);
       const addOns = hitlist.filter((p) => !isMission(p));
@@ -333,10 +340,10 @@ export default function Home() {
 
     // A plan is already in progress: ask before replacing it.
     if (current) {
-      setWaiting({ plan, mode, train, leftNow: !!values.leaveNow });
+      setWaiting({ plan, mode, train, leftNow: !!values.leaveNow, directions: fromHitlist });
       return;
     }
-    await saveAndGo(plan, mode, train, !!values.leaveNow);
+    await saveAndGo(plan, mode, train, !!values.leaveNow, fromHitlist);
   }
 
   const kindLabel = kind ? kindById(kind)?.label : "";
@@ -367,7 +374,7 @@ export default function Home() {
             <button type="button" className="btn btn-secondary" onClick={() => router.push("/plan")}>
               Keep my current plan
             </button>
-            <button type="button" className="btn btn-primary" onClick={() => saveAndGo(waiting.plan, waiting.mode, waiting.train, waiting.leftNow)}>
+            <button type="button" className="btn btn-primary" onClick={() => saveAndGo(waiting.plan, waiting.mode, waiting.train, waiting.leftNow, waiting.directions)}>
               Replace it
             </button>
           </div>

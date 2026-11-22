@@ -2,7 +2,7 @@
 import { compassDirection, walkMinutes } from "./geo";
 import { KENMORE } from "./places";
 import { addMinutes, placeOpenFor } from "./time";
-import { findRoute, lineLabel, nearestStation, rideLines, transferNote } from "../transit";
+import { findRoute, lineLabel, nearestStation, rideLines, transferNote, type Station } from "../transit";
 import type { Leg, Need, Place, PlanInput, Point, RoutePlan, Stop } from "./types";
 
 // ESTIMATES of how long you spend at each kind of stop, in minutes.
@@ -12,6 +12,7 @@ const dwellFor = (place: Place) => place.dwellMin ?? DWELL_MIN[place.category] ?
 // Longest single walk we allow (also the longest walk to or from a station).
 const MAX_WALK_NORMAL = 25;
 const MAX_WALK_CALM = 15; // calmer = shorter walks
+export { MAX_WALK_NORMAL, MAX_WALK_CALM };
 
 // A walk longer than this (minutes, estimate) is replaced by transit when transit is quicker.
 const TRANSIT_ABOVE_WALK_MIN = 12;
@@ -24,7 +25,7 @@ function matches(place: Place, need: Need): boolean {
 }
 
 // ---- Getting from one place to the next ----
-type Trip = { legs: Leg[]; minutes: number }; // minutes = the whole trip, waits included (ESTIMATE)
+export type Trip = { legs: Leg[]; minutes: number }; // minutes = the whole trip, waits included (ESTIMATE)
 
 function walkLeg(from: Point, to: Point, toName: string, clock: Date, minutes: number, suffix = ""): Leg {
   return {
@@ -46,8 +47,19 @@ function walkTrip(from: Point, to: Point, clock: Date, maxWalk: number): Trip | 
 
 // Walk to the nearest station, ride, then walk to the destination. Null if that is not possible.
 function transitTrip(from: Point, to: Point, clock: Date, maxWalk: number, mode: "normal" | "calm"): Trip | null {
-  const board = nearestStation(from);
-  const alight = nearestStation(to);
+  return transitTripVia(from, to, clock, maxWalk, mode, nearestStation(from), nearestStation(to));
+}
+
+// The same, through stations you choose (the directions screen tries a few nearby ones).
+export function transitTripVia(
+  from: Point,
+  to: Point,
+  clock: Date,
+  maxWalk: number,
+  mode: "normal" | "calm",
+  board: Station,
+  alight: Station,
+): Trip | null {
   if (board.id === alight.id) return null;
   const walkIn = walkMinutes(from, board);
   const walkOut = walkMinutes(alight, to);

@@ -6,7 +6,7 @@ import { LINES, STATIONS, WALK_LINKS, platformName, stationById, type Line, type
 // ESTIMATES (minutes). Real trains vary, and live times are not used yet.
 export const WAIT_MIN = 5; // average wait for the next train
 export const CHANGE_WALK_MIN = 3; // walking inside the station when changing lines
-const SPEED_M_PER_MIN: Record<Line["family"], number> = { "Green Line": 250, "Orange Line": 450 };
+const SPEED_M_PER_MIN: Record<Line["family"], number> = { "Green Line": 250, "Orange Line": 450, "Red Line": 500, "Blue Line": 450 };
 const STOP_DWELL_MIN = 0.5; // each stop adds a little time
 const CALM_CHANGE_PENALTY = 1000; // calm mode treats one extra change as worse than any ride time
 
@@ -84,7 +84,9 @@ export function findRoute(fromId: string, toId: string, mode: "normal" | "calm")
       );
     }
     // Walk outside to a nearby station and board a line there.
-    for (const link of linkedStations(state.station)) {
+    // (Only after riding: before the first ride, the planner's own walk to the best station covers it.)
+    for (const link of node.prev ? linkedStations(state.station) : []) {
+      if (line.stations.includes(link.id)) continue; // your train goes there anyway: stay on it
       for (const other of linesAt(link.id)) {
         push(
           { station: link.id, line: other.id },

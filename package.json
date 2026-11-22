@@ -10,7 +10,8 @@
     "start": "next start",
     "check:planner": "tsx lib/planner/check.ts",
     "spike:mbta": "tsx scripts/mbta-spike.ts",
-    "sync:terminals": "tsx scripts/mbta-terminals.ts"
+    "sync:terminals": "tsx scripts/mbta-terminals.ts",
+    "snapshot:places": "tsx scripts/osm-snapshot.ts"
   },
   "dependencies": {
     "maplibre-gl": "^6.19.0",

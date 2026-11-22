@@ -144,6 +144,12 @@ export default function PlanPage() {
 
       <TrainNotices plan={outing.plan} />
 
+      {!outing.finishedAt && outing.plan.stops.length > 0 && (
+        <Link href="/go" className="btn btn-secondary directions-link">
+          Directions to the next stop (transit, walk or car)
+        </Link>
+      )}
+
       {!outing.finishedAt && <NowCard plan={outing.plan} live={live} />}
 
       {change && (
