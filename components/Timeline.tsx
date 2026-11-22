@@ -1,9 +1,12 @@
 import { formatNY } from "@/lib/planner/time";
 import { buildTimeline, skippedNote } from "@/lib/planner/timeline";
 import type { RoutePlan } from "@/lib/planner/types";
+import type { LiveInfo } from "@/lib/transit/live";
+import { LiveLine } from "./LiveTrip";
+import TimeChip from "./TimeChip";
 
 // The whole plan on one screen: summary, then walk, stop, walk, stop.
-export default function Timeline({ plan }: { plan: RoutePlan }) {
+export default function Timeline({ plan, live }: { plan: RoutePlan; live?: Record<string, LiveInfo> }) {
   const items = buildTimeline(plan);
   const note = skippedNote(plan);
 
@@ -29,8 +32,13 @@ export default function Timeline({ plan }: { plan: RoutePlan }) {
           <li key={i} className={`rail-item ${item.kind}`}>
             <div className="rail-time">
               {formatNY(item.startTime)} to {formatNY(item.endTime)}
+              <TimeChip basis={item.basis} />
             </div>
-            <strong>{item.title}</strong>
+            <strong>
+              {item.kind === "transit" && <span className="badge-train">Train</span>}
+              {item.title}
+            </strong>
+            {item.kind === "transit" && live?.[item.startTime] && <LiveLine info={live[item.startTime]} />}
             {item.lines ? (
               <ul className="rail-facts">
                 {item.lines.map((line, j) => (

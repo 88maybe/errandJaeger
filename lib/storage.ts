@@ -3,6 +3,7 @@
 // Every function is async on purpose, so swapping in a database will not change the pages.
 import type { Square } from "./bingo";
 import { KENMORE } from "./planner/places";
+import type { Departures } from "./planner/schedule";
 import type { Need, Point, RoutePlan } from "./planner/types";
 
 // What the home form remembers between visits.
@@ -23,6 +24,10 @@ export type Outing = {
   ticked: number[]; // positions (0-8) of squares you have ticked
   step: number; // which step you are on in the one-step view
   finishedAt?: string; // set when you press "Finish outing"
+  train?: Departures; // the day's real scheduled trips for the rides in this plan (used to re-time without asking again)
+  rev?: number; // goes up each time the plan is re-timed (so AI wording is made again)
+  // What changed the last time the plan was re-timed, in plain words, plus stops that would now be closed.
+  change?: { lines: string[]; dropIds: string[]; at: string };
   // Friendlier wording from the AI. Only ever rewords; every fact still comes from the planner.
   ai?: {
     bingo?: "done" | "failed";

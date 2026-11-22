@@ -1,7 +1,7 @@
 // Turns a RoutePlan into ONE list in time order: walk, stop, walk, stop...
 // Also picks the kind message to show when a plan is empty or partly empty.
 import { addMinutes, formatNY, nyParts } from "./time";
-import type { Need, RoutePlan, TransitLeg } from "./types";
+import type { Basis, Need, RoutePlan, TransitLeg } from "./types";
 
 export type TimelineItem = {
   kind: "walk" | "stop" | "transit";
@@ -11,6 +11,7 @@ export type TimelineItem = {
   startTime: string; // ISO
   endTime: string; // ISO
   lines?: string[]; // transit only: the facts as short sentences, one per line on screen
+  basis: Basis; // where this item's time comes from (shown as a chip)
   warning?: string; // loud last-train warning for this item (shown on screen, never reworded by AI)
   keep?: string[]; // words the AI must keep if it rewords this item (transit facts)
 };
@@ -49,15 +50,19 @@ export function buildSteps(plan: RoutePlan): TimelineItem[] {
       warning: leg.lastWarning ?? undefined,
       startTime: leg.startTime,
       endTime: boardEnd,
+      basis: leg.departBasis ?? "estimate",
       keep: [leg.platform, ...leg.toward],
     });
     steps.push({
       kind: "transit",
       title: `Ride ${leg.stops} ${leg.stops === 1 ? "stop" : "stops"}`,
       place: leg.getOffAt,
-      detail: `Ride ${leg.stops} ${leg.stops === 1 ? "stop" : "stops"}, then get off at ${leg.getOffAt}. About ${leg.rideMin} min (estimate).`,
+      detail: `Ride ${leg.stops} ${leg.stops === 1 ? "stop" : "stops"}, then get off at ${leg.getOffAt}. ${
+        leg.arriveAt ? `Arrives at ${formatNY(leg.arriveAt)} (scheduled).` : `About ${leg.rideMin} min (estimate).`
+      }`,
       startTime: boardEnd,
       endTime: item.endTime,
+      basis: leg.arriveBasis ?? "estimate",
       keep: [String(leg.stops), leg.getOffAt],
     });
   }
@@ -79,6 +84,7 @@ export function buildTimeline(plan: RoutePlan): TimelineItem[] {
         startTime: leg.startTime,
         endTime,
         lines: leg.lines,
+        basis: leg.departBasis ?? "estimate",
         warning: leg.lastWarning ?? undefined,
         keep: transitKeep(leg),
       });
@@ -90,6 +96,7 @@ export function buildTimeline(plan: RoutePlan): TimelineItem[] {
         detail: leg.instruction,
         startTime: leg.startTime,
         endTime,
+        basis: "estimate",
       });
     }
   }
@@ -103,6 +110,7 @@ export function buildTimeline(plan: RoutePlan): TimelineItem[] {
       detail: `${NEED_LABEL[stop.need]}. About ${stop.dwellMin} min here (estimate).`,
       startTime: stop.arriveAt,
       endTime: stop.leaveAt,
+      basis: "estimate",
     });
   }
 

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import BingoCard from "@/components/BingoCard";
 import { aiBingoLabels } from "@/lib/ai/client";
 import { completedLines, isFullCard } from "@/lib/bingo";
+import { replanFromTick } from "@/lib/planner/replan";
 import { finishOuting } from "@/lib/storage";
 import { useOuting } from "@/lib/useOuting";
 
@@ -15,6 +16,7 @@ export default function BingoPage() {
   const [banner, setBanner] = useState<string | null>(null);
   const [askEmpty, setAskEmpty] = useState(false); // "finish with nothing ticked?" confirm
   const [wording, setWording] = useState(false); // AI is reading the square names
+  const [retimed, setRetimed] = useState(false); // we just re-timed the plan after a tick
   const tried = useRef(false);
 
   // Once per outing, ask the AI to make the stop names friendlier. If it can't, the plain names stay.
@@ -68,7 +70,23 @@ export default function BingoPage() {
     else if (!wasTicked && linesAfter > linesBefore) setBanner("A line! Nicely done.");
     else setBanner(null);
 
-    update((prev) => ({ ...prev, ticked }));
+    // Ticking a stop re-times the rest of the plan from this moment.
+    const square = outing.card[index];
+    const stopId = !wasTicked && square.kind === "stop" ? square.id.replace(/^stop-/, "") : null;
+    const r = stopId && !outing.finishedAt ? replanFromTick(outing.plan, outing.train ?? null, stopId, new Date()) : null;
+    if (r) setRetimed(true);
+    update((prev) =>
+      r
+        ? {
+            ...prev,
+            ticked,
+            plan: r.plan,
+            rev: (prev.rev ?? 0) + 1,
+            ai: { ...prev.ai, steps: undefined, actions: undefined },
+            change: { lines: ["Re-timed from now.", ...r.changes], dropIds: r.closed, at: new Date().toISOString() },
+          }
+        : { ...prev, ticked },
+    );
     setAskEmpty(false);
   }
 
@@ -97,6 +115,12 @@ export default function BingoPage() {
             OK
           </button>
         </div>
+      )}
+
+      {retimed && (
+        <p className="soft" role="status">
+          Plan re-timed from now. <Link href="/plan">See what changed</Link>.
+        </p>
       )}
 
       <BingoCard card={outing.card} ticked={outing.ticked} onTap={tap} />

@@ -57,16 +57,24 @@ export type TransitLeg = LegBase & {
   transferNote: string | null; // e.g. "Change at Haymarket to the Orange Line."
   lines: string[]; // the same facts as short sentences (for the screens)
   // What we need to look up the real schedule (see lib/planner/schedule.ts)
-  stationId: string;
+  stationId: string; // boarding station id
+  toStationId: string; // get-off station id
   routeIds: string[]; // MBTA route ids that all work for this ride
   directionId: 0 | 1;
   // Filled in after the schedule check. Without these, times are plain estimates.
+  tripId?: string; // the MBTA trip we planned you onto (used to match live predictions)
   departAt?: string; // ISO: the real next SCHEDULED departure
+  arriveAt?: string; // ISO: the real SCHEDULED arrival at the get-off stop
+  departBasis?: Basis; // "scheduled" once checked, else "estimate"
+  arriveBasis?: Basis;
   lastDeparture?: string | null; // ISO: last scheduled departure of the service day from this stop
   lastWarning?: string | null; // loud text when you'd board within 45 min of it (or after it)
 };
 
 export type Leg = WalkLeg | TransitLeg;
+
+// Where a time comes from. "live" = MBTA predictions, "scheduled" = the timetable, "estimate" = our own guess.
+export type Basis = "live" | "scheduled" | "estimate";
 
 export type Stop = {
   need: Need;

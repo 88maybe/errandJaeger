@@ -784,3 +784,88 @@ p {
   padding-left: var(--s5);
   font-size: var(--text-sm);
 }
+
+/* ---------- Time chips and live trip ---------- */
+.tchip {
+  display: inline-block;
+  margin-left: var(--s2);
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  border: 2px solid var(--ink-soft);
+  color: var(--ink);
+  background: #fff;
+  vertical-align: middle;
+}
+.tchip-live {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+}
+.tchip-scheduled {
+  background: #fff3d6;
+  border-color: var(--clay);
+  color: #5a1f0c;
+}
+.tchip-estimate {
+  background: var(--cream);
+  border-style: dashed;
+}
+
+.now-card {
+  display: grid;
+  gap: var(--s2);
+  margin-bottom: var(--s4);
+}
+.now-big {
+  margin: 0;
+  font-family: var(--font-heading, inherit);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--teal-deep);
+}
+.now-train {
+  border-top: 2px dotted var(--sand);
+  padding-top: var(--s2);
+}
+.now-train p {
+  margin: var(--s1) 0;
+}
+.live-line .tchip {
+  margin: 0 var(--s2) 0 0;
+}
+.late summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  cursor: pointer;
+}
+.late-buttons,
+.change-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s2);
+}
+.change-card ul {
+  margin: var(--s2) 0;
+  padding-left: var(--s5);
+}
+.change-card {
+  border: 3px solid var(--teal);
+  background: var(--sage);
+  display: grid;
+  gap: var(--s2);
+  margin-bottom: var(--s4);
+}
+.badge-train {
+  display: inline-block;
+  margin-right: var(--s2);
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--clay);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}

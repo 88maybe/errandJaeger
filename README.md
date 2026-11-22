@@ -20,7 +20,7 @@ Neurodivergent riders and walkers (ADHD, autism) who find planning tiring: juggl
 - **AI only helps with words** (Google Gemini, server-side): it can read "Tell me what you need today" to prefill the form, and make bingo squares and calm-mode steps friendlier. It never invents places or times. Anything it returns is checked, and every AI feature has a non-AI fallback, so the app works with no key at all.
 - Everything is saved in your browser (no account needed).
 
-Train rides (Green and Orange Lines near the launch area) use a small hand-built map. Departure times, last-train warnings and alerts come from the real MBTA schedule (server side); ride time is an estimate. If the MBTA cannot be reached, the plan still works and says so. Not built yet: live predictions and a database. See PLAN.md.
+Train rides (Green and Orange Lines near the launch area) use a small hand-built map. Departure times, last-train warnings and alerts come from the real MBTA schedule (server side); ride time is an estimate. If the MBTA cannot be reached, the plan still works and says so. Live trip mode refreshes MBTA predictions every 30 seconds, and "I'm running late" re-times the rest of the plan. Every time shows a Live, Scheduled or Estimate chip. Not built yet: a database. See PLAN.md.
 
 ## Run it
 

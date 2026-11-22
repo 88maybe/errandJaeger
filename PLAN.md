@@ -68,5 +68,5 @@ Cut order if short: domain, Tiger Data, alerts banner, surprise square. Never cu
 ## Status (user ticks)
 [x] M0  [x] M1  [x] M2  [x] M3a  [x] M3b  [ ] M4  [ ] M5
 
-Notes: M3a+M3b done. Green + Orange map is hand-built (terminals come from the MBTA routes data via npm run sync:terminals). Real scheduled departures, last-train warnings and alerts come from the MBTA, server side. Ride time is still an estimate. Calm mode = shorter walks, fewest changes, one-step view.
+Notes: M3a+M3b+M3c (live trip mode) done: Leave now, live predictions (15s cache, 30s refresh), running-late buttons, replan on tick, real scheduled ride times, Live/Scheduled/Estimate chips. Green + Orange map is hand-built (terminals come from the MBTA routes data via npm run sync:terminals). Real scheduled departures, last-train warnings and alerts come from the MBTA, server side. Ride time is still an estimate. Calm mode = shorter walks, fewest changes, one-step view.
 Places hours are from memory (see data/places.json _note); spot-check before the demo.

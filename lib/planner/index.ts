@@ -94,6 +94,7 @@ function transitTrip(from: Point, to: Point, clock: Date, maxWalk: number, mode:
       transferNote: transferNote(ride),
       lines,
       stationId: ride.from.id,
+      toStationId: ride.to.id,
       routeIds: ride.sameWay.map((l) => l.routeId),
       directionId: ride.directionId,
     });
@@ -106,7 +107,7 @@ function transitTrip(from: Point, to: Point, clock: Date, maxWalk: number, mode:
 // Pick walking or transit for one trip.
 // Walks of 12 minutes or less stay walks. Longer walks use transit when it is quicker
 // (calmer mode: also when it is up to 5 minutes slower, to keep the walking short).
-function chooseTrip(from: Point, to: Point, clock: Date, maxWalk: number, mode: "normal" | "calm"): Trip | null {
+export function chooseTrip(from: Point, to: Point, clock: Date, maxWalk: number, mode: "normal" | "calm"): Trip | null {
   const walk = walkTrip(from, to, clock, maxWalk);
   if (walk && walkMinutes(from, to) <= TRANSIT_ABOVE_WALK_MIN) return walk;
   const transit = transitTrip(from, to, clock, maxWalk, mode);
@@ -205,4 +206,9 @@ export function planRoute(input: PlanInput, places: Place[]): RoutePlan {
     skipped,
     warnings,
   };
+}
+
+// For re-planning: the best way (walk, or train) between two points at a given time.
+export function tripBetween(from: Point, to: Point, clock: Date, mode: "normal" | "calm") {
+  return chooseTrip(from, to, clock, mode === "calm" ? MAX_WALK_CALM : MAX_WALK_NORMAL, mode);
 }

@@ -12,7 +12,11 @@ import { applyTrainData } from "@/lib/planner/schedule";
 import { emptyPlanMessage } from "@/lib/planner/timeline";
 import type { RoutePlan } from "@/lib/planner/types";
 import { fetchTrainData } from "@/lib/transit/client";
+import type { Departures } from "@/lib/planner/schedule";
 import { getOuting, getPrefs, saveOuting, savePrefs, type Outing, type Prefs } from "@/lib/storage";
+
+// "Leave now": this moment, rounded down to the minute.
+const startOfThisMinute = () => new Date(Math.floor(Date.now() / 60000) * 60000);
 
 export default function Home() {
   const router = useRouter();
@@ -21,7 +25,7 @@ export default function Home() {
   const [message, setMessage] = useState<string | null>(null);
   const [checking, setChecking] = useState(false); // looking up real train times
   // A finished new plan waiting for you to say "replace my current one".
-  const [waiting, setWaiting] = useState<{ plan: RoutePlan; mode: "normal" | "calm" } | null>(null);
+  const [waiting, setWaiting] = useState<{ plan: RoutePlan; mode: "normal" | "calm"; train?: Departures } | null>(null);
 
   // Load what we remembered: your last choices, and any plan in progress.
   useEffect(() => {
@@ -29,9 +33,9 @@ export default function Home() {
     getOuting().then(setCurrent);
   }, []);
 
-  async function saveAndGo(plan: RoutePlan, mode: "normal" | "calm") {
+  async function saveAndGo(plan: RoutePlan, mode: "normal" | "calm", train?: Departures) {
     const id = Date.now().toString(36);
-    await saveOuting({ id, createdAt: new Date().toISOString(), mode, plan, card: buildCard(plan, id), ticked: [], step: 0 });
+    await saveOuting({ id, createdAt: new Date().toISOString(), mode, plan, card: buildCard(plan, id), ticked: [], step: 0, train });
     router.push("/plan");
   }
 
@@ -42,7 +46,7 @@ export default function Home() {
 
     const mode = values.calm ? "calm" : "normal";
     const estimated = planRoute(
-      { needs: values.needs, startTime: todayAtNY(values.startHHMM), loop: values.loop, mode, start: values.start },
+      { needs: values.needs, startTime: values.leaveNow ? startOfThisMinute() : todayAtNY(values.startHHMM), loop: values.loop, mode, start: values.start },
       PLACES,
     );
 
@@ -56,9 +60,12 @@ export default function Home() {
 
     // Train rides: swap the estimated waits for the real scheduled times. If the lookup fails, the plan still works.
     let plan = estimated;
+    let train: Departures | undefined;
     if (estimated.legs.some((l) => l.type === "transit")) {
       setChecking(true);
-      plan = applyTrainData(estimated, await fetchTrainData(estimated));
+      const data = await fetchTrainData(estimated);
+      plan = applyTrainData(estimated, data);
+      train = data?.departures; // saved, so "I'm running late" can re-time without asking again
       setChecking(false);
     } else {
       plan = applyTrainData(estimated, null);
@@ -66,10 +73,10 @@ export default function Home() {
 
     // A plan is already in progress: ask before replacing it.
     if (current) {
-      setWaiting({ plan, mode });
+      setWaiting({ plan, mode, train });
       return;
     }
-    await saveAndGo(plan, mode);
+    await saveAndGo(plan, mode, train);
   }
 
   return (
@@ -96,7 +103,7 @@ export default function Home() {
             <button type="button" className="btn btn-secondary" onClick={() => router.push("/plan")}>
               Keep my current plan
             </button>
-            <button type="button" className="btn btn-primary" onClick={() => saveAndGo(waiting.plan, waiting.mode)}>
+            <button type="button" className="btn btn-primary" onClick={() => saveAndGo(waiting.plan, waiting.mode, waiting.train)}>
               Replace it
             </button>
           </div>

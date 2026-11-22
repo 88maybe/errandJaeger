@@ -1,7 +1,7 @@
 import { guard } from "@/lib/ai/guard";
 import { ALERT_TTL_MS, SCHEDULE_TTL_MS, mbtaGet } from "@/lib/mbta/server";
 import { LINES, STATIONS } from "@/lib/transit/data";
-import type { CheckLeg, CheckResponse } from "@/lib/transit/client";
+import { legKey, type CheckLeg, type CheckResponse, type TripTime } from "@/lib/transit/client";
 
 // Looks up REAL MBTA data for the train rides in a plan: the day's scheduled departures and active alerts.
 // Server side only, so the MBTA key stays private. We only accept station and route ids from our own map.
@@ -9,7 +9,10 @@ const ROUTE_IDS = new Set(LINES.map((l) => l.routeId));
 const STATION_IDS = new Set(STATIONS.map((s) => s.id));
 const lineNames = new Map(LINES.map((l) => [l.routeId, l.name]));
 
-type Schedule = { attributes: { departure_time: string | null } };
+type Schedule = {
+  attributes: { arrival_time: string | null; departure_time: string | null };
+  relationships: { stop: { data: { id: string } }; trip: { data: { id: string } } };
+};
 type Alert = {
   id: string;
   attributes: {
@@ -31,16 +34,19 @@ export async function POST(request: Request) {
     .flatMap((l: any) =>
       l &&
       STATION_IDS.has(l.stationId) &&
+      STATION_IDS.has(l.toStationId) &&
       (l.directionId === 0 || l.directionId === 1) &&
       Array.isArray(l.routeIds) &&
       l.routeIds.length > 0 &&
       l.routeIds.every((r: unknown) => typeof r === "string" && ROUTE_IDS.has(r))
-        ? [{ stationId: l.stationId, directionId: l.directionId, routeIds: l.routeIds as string[] }]
+        ? [{ stationId: l.stationId, toStationId: l.toStationId, directionId: l.directionId, routeIds: l.routeIds as string[] }]
         : [],
     );
   if (!date || legs.length === 0) return Response.json({ ok: false, reason: "bad-request" }, { status: 400 });
 
-  // One schedule lookup per distinct (station, routes, direction).
+  // One schedule lookup per distinct (from, to, routes, direction). We pair up each trip's departure from
+  // the boarding station with its arrival at the get-off station, so ride time is the REAL scheduled time.
+  const platformToStation = await stationPlatforms();
   const keys = [...new Set(legs.map(legKey))];
   const departures: CheckResponse["departures"] = {};
   await Promise.all(
@@ -49,21 +55,33 @@ export async function POST(request: Request) {
       const data = await mbtaGet<{ data: Schedule[] }>(
         "/schedules",
         {
-          "filter[stop]": leg.stationId,
+          "filter[stop]": `${leg.stationId},${leg.toStationId}`,
           "filter[route]": leg.routeIds.join(","),
           "filter[direction_id]": String(leg.directionId),
           "filter[date]": date,
           sort: "departure_time",
-          "fields[schedule]": "departure_time",
+          "fields[schedule]": "arrival_time,departure_time",
           "page[limit]": "1000",
         },
         SCHEDULE_TTL_MS,
       );
-      if (!data || !Array.isArray(data.data)) return; // missing key = this lookup failed
-      departures[key] = data.data
-        .map((s) => s.attributes.departure_time)
-        .filter((t): t is string => !!t)
-        .sort();
+      if (!data || !Array.isArray(data.data) || platformToStation.size === 0) return; // missing key = this lookup failed
+      const dep = new Map<string, string>();
+      const arr = new Map<string, string>();
+      for (const sch of data.data) {
+        const station = platformToStation.get(sch.relationships.stop.data.id) ?? sch.relationships.stop.data.id;
+        const trip = sch.relationships.trip.data.id;
+        if (station === leg.stationId && sch.attributes.departure_time) dep.set(trip, sch.attributes.departure_time);
+        if (station === leg.toStationId && (sch.attributes.arrival_time ?? sch.attributes.departure_time)) {
+          arr.set(trip, (sch.attributes.arrival_time ?? sch.attributes.departure_time)!);
+        }
+      }
+      const trips: TripTime[] = [];
+      for (const [trip, d] of dep) {
+        const a = arr.get(trip);
+        if (a && a > d) trips.push({ trip, dep: d, arr: a }); // only trips that serve BOTH stations, in order
+      }
+      departures[key] = trips.sort((x, y) => x.dep.localeCompare(y.dep));
     }),
   );
 
@@ -81,7 +99,7 @@ export async function POST(request: Request) {
   );
 
   // Keep alerts for the whole line, or for a stop at one of OUR stations. (Alerts for far-away stops on the same line are noise.)
-  const platformIds = await stationPlatformIds();
+  const platformIds = new Set(platformToStation.keys());
   const relevant = (a: Alert) =>
     a.attributes.informed_entity.some((e) => !e.stop || platformIds.has(e.stop) || STATION_IDS.has(e.stop));
 
@@ -104,16 +122,17 @@ export async function POST(request: Request) {
   return Response.json(response);
 }
 
-function legKey(l: CheckLeg) {
-  return `${l.stationId}|${l.routeIds.join(",")}|${l.directionId}`;
-}
-
-// Platform stop ids of the stations in our map (so we can tell which stop-level alerts matter). Cached for a day.
-async function stationPlatformIds(): Promise<Set<string>> {
-  const data = await mbtaGet<{ included?: { id: string }[] }>(
+// Platform stop id -> station id, for the stations in our map. Cached for a day.
+async function stationPlatforms(): Promise<Map<string, string>> {
+  const data = await mbtaGet<{ included?: { id: string; relationships?: { parent_station?: { data?: { id: string } | null } } }[] }>(
     "/stops",
-    { "filter[id]": STATIONS.map((s) => s.id).join(","), include: "child_stops", "fields[stop]": "name" },
+    { "filter[id]": STATIONS.map((x) => x.id).join(","), include: "child_stops", "fields[stop]": "name" },
     24 * 60 * 60_000,
   );
-  return new Set((data?.included ?? []).map((c) => c.id));
+  const map = new Map<string, string>();
+  for (const child of data?.included ?? []) {
+    const parent = child.relationships?.parent_station?.data?.id;
+    if (parent) map.set(child.id, parent);
+  }
+  return map;
 }

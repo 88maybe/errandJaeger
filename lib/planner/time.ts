@@ -101,4 +101,16 @@ export function isOpenFor(hours: Record<string, string>, arrive: Date, stayMin: 
   );
 }
 
+// When does a place close for the opening range that covers this moment? e.g. "10 PM". Null if we can't tell.
+export function closingText(hours: Record<string, string>, at: Date): string | null {
+  const { dayKey, minutes } = nyParts(at);
+  const range = hoursForDay(hours, dayKey).find(([open, close]) => minutes >= open && minutes <= close);
+  if (!range) return null;
+  const close = range[1];
+  if (close >= 1440) return "midnight";
+  const h = Math.floor(close / 60);
+  const m = close % 60;
+  return `${h % 12 === 0 ? 12 : h % 12}${m ? `:${String(m).padStart(2, "0")}` : ""} ${h >= 12 ? "PM" : "AM"}`;
+}
+
 export { DAY_KEYS };

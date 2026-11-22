@@ -12,7 +12,8 @@ import type { Prefs } from "@/lib/storage";
 
 export type FormValues = {
   needs: Need[];
-  startHHMM: string; // "14:30", Boston time
+  startHHMM: string; // "14:30", Boston time (ignored when leaveNow is true)
+  leaveNow?: boolean; // start = this moment
   loop: boolean;
   calm: boolean;
   start: Point;
@@ -143,6 +144,14 @@ export default function PlanForm({ initial, onSubmit }: { initial: Prefs; onSubm
 
       <button type="submit" className="btn btn-primary" disabled={!ready}>
         Make my plan
+      </button>
+      <button
+        type="button"
+        className="btn btn-secondary"
+        disabled={needs.length === 0}
+        onClick={() => onSubmit({ needs, startHHMM, leaveNow: true, loop, calm, start })}
+      >
+        Leave now
       </button>
       {needs.length === 0 && <p className="hint">Pick at least one thing above.</p>}
     </form>

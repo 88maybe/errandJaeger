@@ -1,7 +1,8 @@
 // Run with: npm run check:planner
 // Prints a sample plan so you can see the planner work before any screen exists.
 import { planRoute } from "./index";
-import { KENMORE, PLACES } from "./places";
+import { walkMinutes } from "./geo";
+import { KENMORE, PLACES, START_POINTS } from "./places";
 import { formatNY, nyParts, todayAtNY } from "./time";
 import type { PlanInput, RoutePlan } from "./types";
 
@@ -54,3 +55,34 @@ show("Kenmore start, calm, loop (short walks)", {
   start: KENMORE,
 });
 console.log(`\nPlaces loaded: ${PLACES.length}. Default start: ${KENMORE.name}.`);
+
+// Far-apart stops must visibly include a train, in BOTH modes.
+let farTrips = 0;
+let farWithoutTrain = 0;
+const needSets: PlanInput["needs"][] = [
+  ["grocery", "activity", "snack"],
+  ["favorite", "activity", "grocery"],
+  ["snack", "grocery"],
+  ["activity", "favorite", "snack", "grocery"],
+];
+for (const start of START_POINTS) {
+  for (const mode of ["normal", "calm"] as const) {
+    for (const needs of needSets) {
+      const plan = planRoute({ needs, startTime: twoPm, loop: true, mode, start }, PLACES);
+      const points = [plan.start, ...plan.stops.map((s) => s.place), ...(plan.backBy ? [plan.start] : [])];
+      for (let i = 1; i < points.length; i++) {
+        if (walkMinutes(points[i - 1], points[i]) <= 25) continue; // not far apart
+        farTrips++;
+        // Is there a train leg arriving between these two points? (legs and stops are in time order)
+        const t0 = i === 1 ? new Date(plan.leaveBy).getTime() : new Date(plan.stops[i - 2].leaveAt).getTime();
+        const t1 = i - 1 < plan.stops.length ? new Date(plan.stops[i - 1].arriveAt).getTime() : new Date(plan.endTime).getTime();
+        const hasTrain = plan.legs.some((l) => l.type === "transit" && new Date(l.startTime).getTime() >= t0 && new Date(l.startTime).getTime() <= t1);
+        if (!hasTrain) {
+          farWithoutTrain++;
+          console.log(`  FAIL: ${mode} from ${start.name}: ${points[i - 1].name} -> ${points[i].name} is a long walk with no train`);
+        }
+      }
+    }
+  }
+}
+console.log(`\nFar-apart check: ${farTrips} long hops, ${farWithoutTrain} without a train ${farWithoutTrain === 0 ? "(OK)" : "(PROBLEM)"}`);
