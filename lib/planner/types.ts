@@ -1,6 +1,7 @@
 // The shapes of the data the planner uses. Every planner file agrees on these.
 
-export type Category = "grocery" | "snack" | "activity";
+// "errand" = pharmacy, laundry, bank/ATM and similar (from the map search).
+export type Category = "grocery" | "snack" | "activity" | "errand";
 
 // What the user can ask for. "favorite" matches any place tagged "favorite".
 export type Need = Category | "favorite";
@@ -15,11 +16,14 @@ export type Place = {
   area: string;
   lat: number;
   lng: number;
-  nearestStop: string; // MBTA stop name (used from M3a)
+  nearestStop: string; // MBTA station name (for map-search places it is worked out from the coordinates)
   hours: Record<string, string>; // see data/places.json _note
-  priceLevel: 0 | 1 | 2 | 3;
-  busyTimes: { morning: Busy; midday: Busy; afternoon: Busy; evening: Busy }; // ESTIMATES
+  priceLevel?: 0 | 1 | 2 | 3;
+  busyTimes?: { morning: Busy; midday: Busy; afternoon: Busy; evening: Busy }; // ESTIMATES
   hoursVerified: boolean;
+  hoursUnknown?: boolean; // no opening hours at all (common on OpenStreetMap): we plan it but say "check before you go"
+  kind?: string; // finer type from the map search, e.g. "pharmacy" (see lib/nearby/categories.ts)
+  dwellMin?: number; // ESTIMATE of time spent there, when it differs from the category default
 };
 
 export type Point = { name: string; lat: number; lng: number };
@@ -92,7 +96,7 @@ export type RoutePlan = {
   totalMin: number;
   stops: Stop[];
   legs: Leg[];
-  skipped: { need: Need; reason: string }[];
+  skipped: { need: Need; reason: string; name?: string }[]; // name: set for a hitlist place
   warnings: string[];
   // Train check (MBTA schedule + alerts). Missing or "none" = the plan has no train rides.
   trainCheck?: "ok" | "partial" | "failed" | "none";

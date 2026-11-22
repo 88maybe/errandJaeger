@@ -14,6 +14,11 @@ function tooMany(ip: string): boolean {
   return recent.length > MAX_PER_WINDOW;
 }
 
+// For GET routes (no body): true when this visitor is asking too often.
+export function rateLimited(request: Request): boolean {
+  return tooMany(request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "local");
+}
+
 // Returns the JSON body, or a ready-made error Response.
 export async function guard(request: Request): Promise<Record<string, unknown> | Response> {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "local";

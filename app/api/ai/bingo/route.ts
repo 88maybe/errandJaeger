@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     "You write short, friendly bingo square names for real places in a walking game. Plain, warm, easy to read.",
     'Reply with JSON only: {"labels": [{"id": string, "label": string}]}',
     "Each label: at most 7 words, starts with a verb (for example Visit, Grab, Pick up, Wander through). Keep the place name EXACTLY as given.",
-    'Use the "need" to choose the verb ("grocery" -> pick up groceries, "snack" -> grab a snack, "activity" -> visit or explore, "favorite" -> revisit).',
+    'Use the "need" to choose the verb ("grocery" -> pick up groceries, "snack" -> grab a snack, "activity" -> visit or explore, "errand" -> stop by, "favorite" -> revisit).',
     "Do not add facts, times, prices, directions, opening hours or other places. No exclamation marks.",
   ].join("\n");
 

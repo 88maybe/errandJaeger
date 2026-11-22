@@ -21,6 +21,7 @@ export const NEED_LABEL: Record<Need, string> = {
   grocery: "Groceries",
   snack: "A snack",
   activity: "Something to do",
+  errand: "An errand",
   favorite: "A favorite spot",
 };
 
@@ -134,6 +135,6 @@ export function emptyPlanMessage(plan: RoutePlan): string | null {
 // A soft note when some (but not all) needs didn't fit, or null.
 export function skippedNote(plan: RoutePlan): string | null {
   if (plan.stops.length === 0 || plan.skipped.length === 0) return null;
-  const names = plan.skipped.map((s) => NEED_LABEL[s.need].toLowerCase()).join(", ");
+  const names = plan.skipped.map((s) => s.name ?? NEED_LABEL[s.need].toLowerCase()).join(", ");
   return `Couldn't fit: ${names}. Try another time.`;
 }

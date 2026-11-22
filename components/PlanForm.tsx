@@ -29,10 +29,18 @@ function nextQuarterHour(): string {
   return `${hh}:${mm}`;
 }
 
-export default function PlanForm({ initial, onSubmit }: { initial: Prefs; onSubmit: (values: FormValues) => void }) {
+type Props = {
+  initial: Prefs;
+  onSubmit: (values: FormValues) => void;
+  start: Point; // chosen on the Home page (a start point, or your location)
+  onStart: (point: Point) => void;
+  usingLocation: boolean;
+  hitlistCount: number; // places picked on the map: when there are any, the plan visits those instead of "needs"
+};
+
+export default function PlanForm({ initial, onSubmit, start, onStart, usingLocation, hitlistCount }: Props) {
   // Start from what you chose last time.
   const [needs, setNeeds] = useState<Need[]>(initial.needs);
-  const [start, setStart] = useState<Point>(initial.start);
   const [startHHMM, setStartHHMM] = useState("");
   const [loop, setLoop] = useState(initial.loop);
   const [calm, setCalm] = useState(initial.calm);
@@ -48,14 +56,15 @@ export default function PlanForm({ initial, onSubmit }: { initial: Prefs; onSubm
   const toggleNeed = (need: Need) =>
     setNeeds((current) => (current.includes(need) ? current.filter((n) => n !== need) : [...current, need]));
 
-  const ready = needs.length > 0 && startHHMM !== "";
+  const hasSomething = needs.length > 0 || hitlistCount > 0;
+  const ready = hasSomething && startHHMM !== "";
 
   // Fill the form from a parsed request. Anything the request didn't mention stays as it was.
   function applyParsed(p: ParsedRequest) {
     if (p.needs.length > 0) setNeeds(p.needs);
     if (p.startTime) setStartHHMM(p.startTime);
     const point = START_POINTS.find((s) => s.name === p.start);
-    if (point) setStart(point);
+    if (point) onStart(point);
     if (p.loop !== null) setLoop(p.loop);
     if (p.calm !== null) setCalm(p.calm);
   }
@@ -109,23 +118,35 @@ export default function PlanForm({ initial, onSubmit }: { initial: Prefs; onSubm
         )}
       </div>
 
-      <h2>What do you need today?</h2>
-      <div className="chips">
-        {NEED_ORDER.map((need) => (
-          <button key={need} type="button" className="chip" aria-pressed={needs.includes(need)} onClick={() => toggleNeed(need)}>
-            {NEED_LABEL[need]}
-          </button>
-        ))}
-      </div>
+      {hitlistCount > 0 ? (
+        <p className="soft plan-from-hitlist">
+          Your plan will use your hitlist ({hitlistCount} {hitlistCount === 1 ? "place" : "places"}). Empty the hitlist to pick by type instead.
+        </p>
+      ) : (
+        <>
+          <h2>What do you need today?</h2>
+          <div className="chips">
+            {NEED_ORDER.map((need) => (
+              <button key={need} type="button" className="chip" aria-pressed={needs.includes(need)} onClick={() => toggleNeed(need)}>
+                {NEED_LABEL[need]}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       <h2>Where are you starting?</h2>
-      <div className="chips">
-        {START_POINTS.map((point) => (
-          <button key={point.name} type="button" className="chip" aria-pressed={start.name === point.name} onClick={() => setStart(point)}>
-            {point.name}
-          </button>
-        ))}
-      </div>
+      {usingLocation ? (
+        <p className="soft">From your location (it stays on this phone).</p>
+      ) : (
+        <div className="chips">
+          {START_POINTS.map((point) => (
+            <button key={point.name} type="button" className="chip" aria-pressed={start.name === point.name} onClick={() => onStart(point)}>
+              {point.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       <h2>When do you want to start?</h2>
       <input className="time-input" type="time" value={startHHMM} onChange={(e) => setStartHHMM(e.target.value)} aria-label="Start time (Boston time)" />
@@ -148,12 +169,12 @@ export default function PlanForm({ initial, onSubmit }: { initial: Prefs; onSubm
       <button
         type="button"
         className="btn btn-secondary"
-        disabled={needs.length === 0}
+        disabled={!hasSomething}
         onClick={() => onSubmit({ needs, startHHMM, leaveNow: true, loop, calm, start })}
       >
         Leave now
       </button>
-      {needs.length === 0 && <p className="hint">Pick at least one thing above.</p>}
+      {!hasSomething && <p className="hint">Pick at least one thing above, or add places from the map.</p>}
     </form>
   );
 }

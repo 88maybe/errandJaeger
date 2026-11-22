@@ -101,6 +101,11 @@ export function isOpenFor(hours: Record<string, string>, arrive: Date, stayMin: 
   );
 }
 
+// The same, for a place: one with unknown hours counts as open (the plan then tells you to check).
+export function placeOpenFor(place: { hours: Record<string, string>; hoursUnknown?: boolean }, arrive: Date, stayMin: number): boolean {
+  return !!place.hoursUnknown || isOpenFor(place.hours, arrive, stayMin);
+}
+
 // When does a place close for the opening range that covers this moment? e.g. "10 PM". Null if we can't tell.
 export function closingText(hours: Record<string, string>, at: Date): string | null {
   const { dayKey, minutes } = nyParts(at);

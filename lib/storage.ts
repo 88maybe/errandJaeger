@@ -2,6 +2,7 @@
 // Today it uses the browser's localStorage. Later (M4) only this file changes to talk to a database.
 // Every function is async on purpose, so swapping in a database will not change the pages.
 import type { Square } from "./bingo";
+import type { NearbyPlace } from "./nearby/types";
 import { KENMORE } from "./planner/places";
 import type { Departures } from "./planner/schedule";
 import type { Need, Point, RoutePlan } from "./planner/types";
@@ -12,7 +13,13 @@ export type Prefs = {
   loop: boolean;
   calm: boolean;
   start: Point;
+  stim?: boolean; // Stim mode: true = lively map and side quests, false = fewer markers, gentle fades
+  radius?: number; // map search radius in metres
+  includeAddOns?: boolean; // Stim mode off: also visit treats and wellbeing places (after the errands)
 };
+
+// One place on your hitlist (tap a place on the map to add it). Errands are missions; the rest are add-ons.
+export type HitItem = NearbyPlace;
 
 // One outing: the plan, its bingo card, and how far you have got.
 export type Outing = {
@@ -41,9 +48,11 @@ const KEYS = {
   prefs: "errandjaeger:v1:prefs",
   outing: "errandjaeger:v1:outing", // the current, unfinished outing
   history: "errandjaeger:v1:history", // finished outings
+  favorites: "errandjaeger:v1:favorites", // starred places
+  hitlist: "errandjaeger:v1:hitlist", // places picked on the map for the next plan
 };
 
-const DEFAULT_PREFS: Prefs = { needs: [], loop: true, calm: false, start: KENMORE };
+const DEFAULT_PREFS: Prefs = { needs: [], loop: true, calm: false, start: KENMORE, stim: false, radius: 1000, includeAddOns: true };
 
 // Reads and parses a saved value. Any problem (private window, bad data) falls back quietly.
 function read<T>(key: string, fallback: T): T {
@@ -108,4 +117,23 @@ export async function finishOuting(): Promise<Outing | null> {
   write(KEYS.history, [...(await getHistory()), finished]);
   await discardOuting();
   return finished;
+}
+
+// Starred places (saved in this browser only).
+export async function getFavorites(): Promise<NearbyPlace[]> {
+  const list = read<NearbyPlace[]>(KEYS.favorites, []);
+  return Array.isArray(list) ? list.filter((p) => p && typeof p.id === "string" && typeof p.lat === "number") : [];
+}
+
+export async function saveFavorites(list: NearbyPlace[]): Promise<void> {
+  write(KEYS.favorites, list.slice(0, 50));
+}
+
+export async function getHitlist(): Promise<HitItem[]> {
+  const list = read<HitItem[]>(KEYS.hitlist, []);
+  return Array.isArray(list) ? list.filter((p) => p && typeof p.id === "string" && typeof p.lat === "number") : [];
+}
+
+export async function saveHitlist(list: HitItem[]): Promise<void> {
+  write(KEYS.hitlist, list);
 }

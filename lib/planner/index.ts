@@ -1,12 +1,13 @@
 // The planner. Plain code, no AI: it only uses the real place list and simple maths.
 import { compassDirection, walkMinutes } from "./geo";
 import { KENMORE } from "./places";
-import { addMinutes, isOpenFor } from "./time";
+import { addMinutes, placeOpenFor } from "./time";
 import { findRoute, lineLabel, nearestStation, rideLines, transferNote } from "../transit";
 import type { Leg, Need, Place, PlanInput, Point, RoutePlan, Stop } from "./types";
 
 // ESTIMATES of how long you spend at each kind of stop, in minutes.
-const DWELL_MIN: Record<string, number> = { grocery: 20, snack: 15, activity: 40 };
+const DWELL_MIN: Record<string, number> = { grocery: 20, snack: 15, activity: 40, errand: 10 };
+const dwellFor = (place: Place) => place.dwellMin ?? DWELL_MIN[place.category] ?? 15;
 
 // Longest single walk we allow (also the longest walk to or from a station).
 const MAX_WALK_NORMAL = 25;
@@ -154,8 +155,8 @@ export function planRoute(input: PlanInput, places: Place[]): RoutePlan {
         if (!trip) continue; // can't get there sensibly
 
         const arrive = addMinutes(clock, trip.minutes);
-        const dwell = DWELL_MIN[place.category];
-        if (!isOpenFor(place.hours, arrive, dwell)) continue; // closed (Boston time)
+        const dwell = dwellFor(place);
+        if (!placeOpenFor(place, arrive, dwell)) continue; // closed (Boston time)
 
         if (!best || trip.minutes < best.trip.minutes) best = { need, place, trip, arrive, dwell };
       }
@@ -184,7 +185,21 @@ export function planRoute(input: PlanInput, places: Place[]): RoutePlan {
     need,
     reason: "Nothing open and reachable from the previous stop at that time.",
   }));
+  return finishPlan(input, start, here, clock, stops, legs, skipped, maxWalk, mode);
+}
 
+// The shared ending: the walk back (for a loop), the hours warnings, and the totals.
+function finishPlan(
+  input: Omit<PlanInput, "needs">,
+  start: Point,
+  here: Point,
+  clock: Date,
+  stops: Stop[],
+  legs: Leg[],
+  skipped: RoutePlan["skipped"],
+  maxWalk: number,
+  mode: "normal" | "calm",
+): RoutePlan {
   // Walk back to the start if the user wants a loop.
   const warnings: string[] = [];
   let backBy: string | null = null;
@@ -204,7 +219,8 @@ export function planRoute(input: PlanInput, places: Place[]): RoutePlan {
   }
 
   for (const s of stops) {
-    if (!s.place.hoursVerified) warnings.push(`Opening hours for ${s.place.name} are not verified.`);
+    if (s.place.hoursUnknown) warnings.push(`Opening hours for ${s.place.name} are unknown. Please check before you go.`);
+    else if (!s.place.hoursVerified) warnings.push(`Opening hours for ${s.place.name} are not verified.`);
   }
 
   return {
@@ -218,6 +234,42 @@ export function planRoute(input: PlanInput, places: Place[]): RoutePlan {
     skipped,
     warnings,
   };
+}
+
+// Plan a hitlist: visit these exact places IN THIS ORDER (the Home page decides the order).
+// A place that is closed when you'd get there, or too far to reach, is skipped and named.
+export function planHitlist(input: Omit<PlanInput, "needs">, places: Place[]): RoutePlan {
+  const start = input.start ?? KENMORE;
+  const mode = input.mode ?? "normal";
+  const maxWalk = mode === "calm" ? MAX_WALK_CALM : MAX_WALK_NORMAL;
+  let here: Point = { name: start.name, lat: start.lat, lng: start.lng };
+  let clock = input.startTime;
+  const stops: Stop[] = [];
+  const legs: Leg[] = [];
+  const skipped: RoutePlan["skipped"] = [];
+  const seen = new Set<string>();
+
+  for (const place of places) {
+    if (seen.has(place.id)) continue;
+    seen.add(place.id);
+    const trip = chooseTrip(here, place, clock, maxWalk, mode);
+    if (!trip) {
+      skipped.push({ need: place.category, name: place.name, reason: "Too far to walk or ride from the previous stop." });
+      continue;
+    }
+    const arrive = addMinutes(clock, trip.minutes);
+    const dwell = dwellFor(place);
+    if (!placeOpenFor(place, arrive, dwell)) {
+      skipped.push({ need: place.category, name: place.name, reason: "Closed when you would get there." });
+      continue;
+    }
+    legs.push(...trip.legs);
+    const leaveAt = addMinutes(arrive, dwell);
+    stops.push({ need: place.category, place, arriveAt: arrive.toISOString(), leaveAt: leaveAt.toISOString(), dwellMin: dwell });
+    here = { name: place.name, lat: place.lat, lng: place.lng };
+    clock = leaveAt;
+  }
+  return finishPlan(input, start, here, clock, stops, legs, skipped, maxWalk, mode);
 }
 
 // For re-planning: the best way (walk, or train) between two points at a given time.
