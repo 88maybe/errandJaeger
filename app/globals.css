@@ -5,27 +5,21 @@
    ========================================================= */
 
 :root {
-  /* Colour */
-  --cream: #fbf6ee; /* page background */
-  --paper: #fffdf9; /* cards */
-  --sand: #e6dac8; /* borders, quiet fills */
-  --ink: #2a2622; /* main text */
-  --ink-soft: #5c534a; /* secondary text */
-  --teal: #1f5f5b; /* main action, "done" */
-  --teal-deep: #174744;
-  --sage: #dcebe5; /* soft teal fill */
-  --clay: #a64a28; /* warm accent, focus */
-  --clay-soft: #f6e3d8;
-  --gold: #f0c04a; /* win highlight */
+  /* ---- Shared ---- */
+  /* Boston subway colours as bold accents: Green = errands, Orange = treats, Blue = wellbeing, Red = warnings */
+  --gl: #00843d;
+  --ol: #ed8b00;
+  --bl: #003da5;
+  --rl: #da291c;
 
   /* Type scale */
-  --text-sm: 0.875rem;
+  --text-sm: 0.9375rem;
   --text-base: 1.125rem;
   --text-lg: 1.375rem;
   --text-xl: 1.75rem;
   --text-2xl: 2.25rem;
   --font-text: var(--font-body), system-ui, sans-serif;
-  --font-head: var(--font-display), Georgia, serif;
+  --font-head: var(--font-body), system-ui, sans-serif; /* bold Atkinson Hyperlegible for headings too */
 
   /* Spacing (4px steps) */
   --s1: 0.25rem;
@@ -37,6 +31,82 @@
 
   --radius: 16px;
   --tap: 56px; /* minimum tap target height */
+  --shadow: 0 1px 2px rgb(42 38 34 / 0.08), 0 2px 8px rgb(42 38 34 / 0.06);
+  --press: 0.12s;
+}
+
+/* ---- Light (default): warm cream, deep teal, terracotta ---- */
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+  --cream: #fbf6ee; /* page background */
+  --paper: #fffdf9; /* cards */
+  --paper-2: #fffaf2; /* sheets, raised cards */
+  --sand: #e6dac8; /* borders, quiet fills */
+  --ink: #2a2622; /* main text */
+  --ink-soft: #5c534a; /* secondary text */
+  --on-accent: #ffffff; /* text on a coloured accent */
+  --teal: #1f5f5b; /* main action */
+  --teal-deep: #174744;
+  --sage: #dcebe5; /* soft teal fill */
+  --clay: #a64a28; /* terracotta */
+  --clay-soft: #f6e3d8;
+  --gold: #e0a800; /* win highlight */
+  --warn-bg: #fde8e6;
+  --warn-ink: #7a130c;
+  --sched-bg: #fff1d6;
+  --ok-bg: #e3f2e9;
+  --ok-ink: #0b4f2a;
+
+  /* Group accents (Stim mode on uses these full-strength colours) */
+  --errands: var(--gl);
+  --treats: var(--ol);
+  --wellbeing: var(--bl);
+  --warn: var(--rl);
+  --on-treats: #2a2622; /* dark text on orange reads best */
+}
+
+/* ---- Dark: calm charcoal, no glow ---- */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --cream: #161514;
+  --paper: #201f1d;
+  --paper-2: #262422;
+  --sand: #3a3733;
+  --ink: #f2ede6;
+  --ink-soft: #c2b9ad;
+  --on-accent: #ffffff;
+  --teal: #4fa59c;
+  --teal-deep: #3d8b83;
+  --sage: #22312d;
+  --clay: #d9825d;
+  --clay-soft: #3a2820;
+  --gold: #e8b923;
+  --warn-bg: #3d1a16;
+  --warn-ink: #ffd5cf;
+  --sched-bg: #3a2f1a;
+  --ok-bg: #1d3326;
+  --ok-ink: #bfe8cf;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  /* The official colours are dark; lift them a little so they read on charcoal */
+  --errands: #2fa866;
+  --treats: #f29b2a;
+  --wellbeing: #4f86e8;
+  --warn: #ee5a4c;
+  --on-treats: #1b1a18;
+}
+
+/* Stim mode off: the same colours, a little softer (still clearly green, orange, blue, red) */
+:root[data-stim="off"] {
+  --errands: color-mix(in srgb, var(--gl) 78%, var(--ink-soft));
+  --treats: color-mix(in srgb, var(--ol) 80%, var(--ink-soft));
+  --wellbeing: color-mix(in srgb, var(--bl) 80%, var(--ink-soft));
+}
+:root[data-theme="dark"][data-stim="off"] {
+  --errands: #3c9a66;
+  --treats: #d99640;
+  --wellbeing: #5d87d0;
 }
 
 * {
@@ -62,6 +132,8 @@ body {
 h1,
 h2 {
   font-family: var(--font-head);
+  font-weight: 700;
+  letter-spacing: -0.01em;
   line-height: 1.2;
   margin: 0;
 }
@@ -199,7 +271,7 @@ p {
 
 .btn-primary {
   background: var(--teal);
-  color: #ffffff;
+  color: var(--on-accent);
 }
 
 .btn-primary:hover {
@@ -240,7 +312,7 @@ p {
 .chip[aria-pressed="true"] {
   background: var(--teal);
   border-color: var(--teal);
-  color: #ffffff;
+  color: var(--on-accent);
 }
 
 .time-input {
@@ -477,7 +549,7 @@ p {
 
 .step-card.transit {
   border-color: var(--clay);
-  background: #fff3d6;
+  background: var(--sched-bg);
 }
 
 .step-time {
@@ -553,11 +625,11 @@ p {
   background: var(--teal);
   border-color: var(--teal);
   border-style: solid;
-  color: #ffffff;
+  color: var(--on-accent);
 }
 
 .square.done .square-tag {
-  color: #cfe5df;
+  color: var(--on-accent);
 }
 
 .square.free {
@@ -738,8 +810,8 @@ p {
 
 .alert-loud {
   border: 3px solid var(--clay);
-  background: #fde8df;
-  color: #5a1f0c;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
   border-radius: 14px;
   padding: var(--s3) var(--s4);
 }
@@ -759,8 +831,8 @@ p {
   padding: var(--s2) var(--s3);
   border: 2px solid var(--clay);
   border-radius: 10px;
-  background: #fde8df;
-  color: #5a1f0c;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
   font-weight: 700;
 }
 
@@ -768,7 +840,7 @@ p {
   border: 2px solid var(--sand);
   border-radius: 14px;
   padding: var(--s2) var(--s4);
-  background: #fff;
+  background: var(--paper);
 }
 
 .alerts summary {
@@ -795,18 +867,18 @@ p {
   font-weight: 700;
   border: 2px solid var(--ink-soft);
   color: var(--ink);
-  background: #fff;
+  background: var(--paper);
   vertical-align: middle;
 }
 .tchip-live {
   background: var(--teal);
   border-color: var(--teal);
-  color: #fff;
+  color: var(--on-accent);
 }
 .tchip-scheduled {
-  background: #fff3d6;
+  background: var(--sched-bg);
   border-color: var(--clay);
-  color: #5a1f0c;
+  color: var(--warn-ink);
 }
 .tchip-estimate {
   background: var(--cream);
@@ -865,7 +937,1712 @@ p {
   padding: 1px 8px;
   border-radius: 6px;
   background: var(--clay);
-  color: #fff;
+  color: var(--on-accent);
   font-size: var(--text-sm);
   font-weight: 700;
+}
+
+/* =========================================================
+   Map-first Home (map, category chips, results sheet, hitlist)
+   All motion lives inside "no-preference" blocks; the global
+   reduce-motion rule above also switches everything off.
+   ========================================================= */
+.bottom-nav {
+  z-index: 30;
+}
+
+.brand-compact {
+  margin-bottom: var(--s3);
+}
+.brand-compact h1 {
+  font-size: var(--text-xl);
+}
+.brand-compact::after {
+  display: none;
+}
+
+.map-wrap {
+  position: relative;
+  margin: 0 calc(-1 * var(--s4));
+}
+
+.map-box {
+  position: relative;
+  height: 52vh;
+  min-height: 300px;
+  max-height: 520px;
+  background: var(--sage);
+}
+.map-canvas {
+  width: 100%;
+  height: 100%; /* MapLibre makes this element position: relative, so size it directly */
+}
+.map-failed {
+  display: grid;
+  place-items: center;
+  padding: var(--s5);
+  text-align: center;
+  color: var(--ink-soft);
+}
+.map-note {
+  position: absolute;
+  left: var(--s2);
+  bottom: var(--s2);
+  background: var(--paper);
+  border-radius: 8px;
+  padding: 2px var(--s2);
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+/* Category chips along the top of the map (scroll sideways) */
+.cat-chips {
+  position: absolute;
+  z-index: 5;
+  top: var(--s2);
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: var(--s3);
+  overflow-x: auto;
+  padding: 0 var(--s3) var(--s1);
+  scrollbar-width: none;
+}
+.cat-chips::-webkit-scrollbar {
+  display: none;
+}
+.cat-group {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex: none;
+}
+.cat-group-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--paper) 85%, transparent);
+  border-radius: 999px;
+  padding: 2px var(--s2);
+}
+.cat-chip {
+  flex: none;
+  min-height: 44px;
+  padding: 0 var(--s4);
+  border-radius: 999px;
+  border: 1.5px solid var(--sand);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.15);
+  cursor: pointer;
+}
+.cat-chip::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background: var(--group-colour);
+}
+.cat-errands {
+  --group-colour: var(--errands);
+}
+.cat-treats {
+  --group-colour: var(--treats);
+}
+.cat-wellbeing {
+  --group-colour: var(--wellbeing);
+}
+.cat-chip[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+/* Distance and location buttons along the bottom of the map */
+.map-tools {
+  position: absolute;
+  z-index: 5;
+  left: var(--s3);
+  right: var(--s3);
+  bottom: var(--s5);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--s2);
+  pointer-events: none;
+}
+.map-tools > * {
+  pointer-events: auto;
+}
+.radius {
+  display: flex;
+  background: var(--paper);
+  border: 1.5px solid var(--sand);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.15);
+}
+.radius button {
+  min-height: 44px;
+  padding: 0 var(--s3);
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+}
+.radius button[aria-pressed="true"] {
+  background: var(--teal);
+  color: var(--paper);
+}
+.locate-btn {
+  min-height: 44px;
+  padding: 0 var(--s4);
+  border-radius: 999px;
+  border: 1.5px solid var(--teal);
+  background: var(--paper);
+  color: var(--teal);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.15);
+  cursor: pointer;
+}
+.loc-note {
+  margin-top: var(--s2);
+}
+
+/* Your live blue dot */
+.you-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #1a73e8;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 6px rgb(26 115 232 / 0.2);
+}
+
+/* Result markers */
+.pin {
+  width: 28px;
+  height: 28px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  border: 2.5px solid #fff;
+  background: var(--group-colour);
+  box-shadow: 0 2px 5px rgb(0 0 0 / 0.3);
+  cursor: pointer;
+  padding: 0;
+}
+.pin-errands {
+  --group-colour: var(--errands);
+}
+.pin-treats {
+  --group-colour: var(--treats);
+}
+.pin-wellbeing {
+  --group-colour: var(--wellbeing);
+}
+.pin-added {
+  outline: 3px solid var(--gold);
+  outline-offset: 1px;
+}
+.pin-fav::after {
+  content: "★";
+  display: block;
+  transform: rotate(45deg);
+  color: var(--gold);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+/* The pulsing radius ring (Stim mode only) */
+.pin-wrap {
+  padding-bottom: 6px; /* the pin's point sits on the spot */
+}
+.pulse-wrap {
+  width: 0;
+  height: 0;
+  position: relative;
+}
+.pulse-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 3px solid var(--teal);
+  pointer-events: none;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pin-pop {
+    animation: pin-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation-delay: var(--delay, 0ms);
+  }
+  .pin-fade {
+    animation: fade-in 0.5s ease-out both;
+    animation-delay: var(--delay, 0ms);
+  }
+  .pulse-ring {
+    animation: pulse-ring 1.4s ease-out 2;
+  }
+  /* Pulsing only in Stim mode; calm mode stays still. */
+  :root[data-stim="on"] .you-dot {
+    animation: you-pulse 2.4s ease-in-out infinite;
+  }
+  .sheet-in {
+    animation: sheet-up 0.3s ease-out both;
+  }
+  .card-slide {
+    animation: card-up 0.35s ease-out both;
+  }
+  .card-fade {
+    animation: fade-in 0.35s ease-out both;
+  }
+  .hit-new {
+    animation: fade-in 0.4s ease-out;
+  }
+  :root[data-stim="on"] .hit-new {
+    animation: hit-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes pin-pop {
+    from {
+      opacity: 0;
+      transform: rotate(-45deg) scale(0);
+    }
+    to {
+      opacity: 1;
+      transform: rotate(-45deg) scale(1);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes pulse-ring {
+    from {
+      opacity: 0.7;
+      transform: scale(0.1);
+    }
+    to {
+      opacity: 0;
+      transform: scale(1);
+    }
+  }
+  @keyframes you-pulse {
+    50% {
+      box-shadow: 0 0 0 12px rgb(26 115 232 / 0.08);
+    }
+  }
+  @keyframes sheet-up {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  @keyframes card-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes hit-in {
+    0% {
+      background: var(--gold);
+      color: var(--on-accent);
+      transform: scale(0.85) translateY(10px);
+    }
+    60% {
+      transform: scale(1.04) translateY(0);
+    }
+    100% {
+      background: var(--paper);
+      transform: scale(1);
+    }
+  }
+}
+
+/* Stim mode toggle */
+.stim-toggle {
+  margin-top: var(--s4);
+}
+
+/* The results sheet, sliding up from the bottom (above the tab bar) */
+.home.has-sheet {
+  padding-bottom: 42vh;
+}
+.sheet {
+  position: fixed;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  bottom: calc(64px + env(safe-area-inset-bottom));
+  max-width: 480px;
+  margin: 0 auto;
+  max-height: 40vh;
+  overflow-y: auto;
+  background: var(--paper);
+  border: 1.5px solid var(--sand);
+  border-bottom: 0;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -4px 16px rgb(0 0 0 / 0.12);
+  padding: 0 var(--s4) var(--s4);
+}
+.sheet-head {
+  position: sticky;
+  top: 0;
+  background: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: var(--s4) 0 var(--s2);
+}
+.sheet-head h2 {
+  margin: 0;
+  font-size: var(--text-base);
+}
+.sheet-grip {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 40px;
+  height: 4px;
+  margin-left: -20px;
+  border-radius: 2px;
+  background: var(--sand);
+}
+.sheet-close {
+  min-height: 44px;
+  padding: 0 var(--s3);
+  border: 1.5px solid var(--sand);
+  border-radius: 999px;
+  background: transparent;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+.sheet-list {
+  list-style: none;
+  margin: var(--s2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s2);
+}
+.place-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3);
+  border: 1.5px solid var(--sand);
+  border-radius: var(--radius);
+  background: var(--cream);
+}
+.place-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.place-main .soft {
+  margin: 0;
+}
+.place-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex: none;
+}
+.open-chip {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 1px var(--s2);
+}
+.open-open {
+  background: var(--sage);
+  color: var(--teal-deep);
+}
+.open-closed {
+  background: var(--clay-soft);
+  color: var(--clay);
+}
+.open-unknown {
+  background: var(--sand);
+  color: var(--ink);
+}
+.star {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid var(--sand);
+  background: var(--paper);
+  font-size: 1.25rem;
+  color: var(--gold);
+  cursor: pointer;
+}
+.btn.btn-small {
+  width: auto;
+  min-height: 44px;
+  padding: 0 var(--s3);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+.side-quest {
+  margin-top: var(--s2);
+  padding: var(--s3);
+  border-radius: var(--radius);
+  border: 2px dashed var(--clay);
+  background: var(--clay-soft);
+  display: grid;
+  gap: var(--s1);
+}
+.side-quest .soft {
+  margin: 0;
+}
+
+/* Favorites and the hitlist tray */
+.favs h2,
+.hitlist h2 {
+  font-size: var(--text-base);
+  margin: var(--s4) 0 var(--s2);
+}
+.chip.chip-small {
+  min-height: 44px;
+  font-size: var(--text-sm);
+}
+.hitlist ol {
+  list-style: none;
+  margin: var(--s2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s2);
+}
+.hit {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3);
+  border: 1.5px solid var(--sand);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+.hit-tag {
+  flex: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 1px var(--s2);
+}
+.tag-mission {
+  background: var(--teal);
+  color: var(--paper);
+}
+.tag-addon {
+  background: var(--clay-soft);
+  color: var(--clay);
+}
+.hit-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-weight: 700;
+}
+.hit-name small {
+  font-weight: 400;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+}
+.hit-buttons {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+.hit-buttons button {
+  width: 40px;
+  height: 44px;
+  border: 1.5px solid var(--sand);
+  border-radius: 10px;
+  background: var(--cream);
+  font: inherit;
+  cursor: pointer;
+}
+.hit-buttons button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.plan-from-hitlist {
+  margin-top: var(--s4);
+  padding: var(--s3);
+  border-radius: var(--radius);
+  background: var(--sage);
+  color: var(--ink);
+}
+
+/* =========================================================
+   Directions (/go): options and route
+   ========================================================= */
+.directions-link {
+  margin-top: 0;
+  margin-bottom: var(--s4);
+}
+.go-head .soft {
+  margin-top: var(--s1);
+}
+.go-stops {
+  display: flex;
+  gap: var(--s2);
+  margin-top: var(--s3);
+}
+.go-stops .btn {
+  flex: 1;
+}
+.go-map {
+  margin-top: var(--s3);
+}
+.go-map .map-box {
+  height: 38vh;
+  min-height: 240px;
+}
+.go-foot {
+  margin-top: var(--s5);
+}
+
+.mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s2);
+  margin: var(--s4) 0 var(--s3);
+}
+.mode-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: var(--tap);
+  padding: var(--s2);
+  border: 1.5px solid var(--sand);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.mode-tab span {
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+.mode-tab[aria-selected="true"] {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: var(--paper);
+}
+
+.option-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s2);
+  width: 100%;
+  margin-top: var(--s3);
+  padding: var(--s4);
+  border: 1.5px solid var(--sand);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.option-card:hover {
+  border-color: var(--teal);
+}
+.option-tags {
+  display: flex;
+  gap: var(--s1);
+  flex-wrap: wrap;
+}
+.option-tag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 1px var(--s2);
+  background: var(--sage);
+  color: var(--teal-deep);
+}
+.option-times small {
+  color: var(--ink-soft);
+}
+.option-leave,
+.leave-in {
+  font-weight: 700;
+  color: var(--teal);
+}
+.option-warning {
+  display: block;
+  color: var(--clay);
+  font-weight: 700;
+  font-size: var(--text-sm);
+}
+.bus-note {
+  font-style: italic;
+}
+
+.route-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.strip-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.strip-sep {
+  color: var(--ink-soft);
+}
+.line-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.5;
+  vertical-align: middle;
+}
+.walk-chip {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  border: 1.5px dotted var(--ink-soft);
+  border-radius: 6px;
+  padding: 0 6px;
+}
+
+.dep-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+.dep-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px var(--s3);
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: var(--text-sm);
+  border: 1.5px solid var(--sand);
+  background: var(--cream);
+}
+.dep-chip small {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ink-soft);
+}
+.dep-live {
+  border-color: var(--teal);
+  background: var(--sage);
+}
+.dep-live small {
+  color: var(--teal-deep);
+}
+
+/* Route view */
+.link-back {
+  margin-top: var(--s3);
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--teal);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+.summary-card {
+  margin-top: var(--s2);
+  padding: var(--s4);
+  border-radius: var(--radius);
+  background: var(--paper);
+  border: 1.5px solid var(--sand);
+  display: grid;
+  gap: var(--s2);
+}
+.summary-times {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s2);
+}
+.summary-times small {
+  display: block;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+.summary-times strong {
+  font-family: var(--font-head);
+  font-size: var(--text-lg);
+}
+.time-bar {
+  display: flex;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--sand);
+}
+.bar-walk {
+  background: repeating-linear-gradient(90deg, var(--ink-soft) 0 4px, var(--sand) 4px 7px);
+}
+.bar-wait {
+  background: var(--sand);
+}
+.bar-ride {
+  background: var(--teal);
+}
+.bar-legend {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.route-steps {
+  list-style: none;
+  margin: var(--s4) 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+.rstep {
+  display: flex;
+  gap: var(--s3);
+  padding: var(--s3) 0;
+  border-bottom: 1px solid var(--sand);
+}
+.rstep > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rstep .soft {
+  margin: 0;
+}
+.rstep-icon {
+  flex: none;
+  width: 14px;
+  margin-top: 6px;
+  border-radius: 7px;
+  align-self: stretch;
+  min-height: 14px;
+}
+.icon-walk {
+  background: radial-gradient(circle, var(--ink-soft) 2px, transparent 2.5px) center top / 14px 8px repeat-y;
+}
+.icon-ride {
+  background: var(--line, var(--teal));
+}
+.icon-car {
+  background: var(--ink-soft);
+}
+.icon-end {
+  height: 14px;
+  align-self: flex-start;
+  background: var(--clay);
+}
+.change-note {
+  font-style: italic;
+}
+.rstep-more summary {
+  cursor: pointer;
+  color: var(--teal);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  min-height: 32px;
+}
+.rstep-more ol {
+  margin: var(--s1) 0 0;
+  padding-left: 1.2rem;
+  font-size: var(--text-sm);
+}
+.stop-list li::marker {
+  color: var(--line, var(--teal));
+}
+
+/* Map markers for directions */
+.route-point {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+}
+.route-start {
+  background: var(--teal);
+}
+.route-end {
+  width: 20px;
+  height: 20px;
+  background: var(--clay);
+}
+.route-station {
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border: 3px solid var(--dot, var(--teal));
+}
+
+
+/* =========================================================
+   Visual system: warm base, subway colours as bold accents.
+   Works in light and dark. No glow, no neon.
+   ========================================================= */
+body {
+  -webkit-font-smoothing: antialiased;
+}
+a {
+  color: var(--teal);
+}
+
+/* Page titles carry a short four-colour "subway" stripe */
+.page-title {
+  font-size: var(--text-xl);
+  color: var(--ink);
+}
+.page-title::after,
+.brand h1::after {
+  content: "";
+  display: block;
+  width: 88px;
+  height: 5px;
+  margin-top: var(--s2);
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--errands) 0 25%, var(--treats) 25% 50%, var(--wellbeing) 50% 75%, var(--warn) 75%);
+}
+.brand h1 {
+  color: var(--teal);
+}
+.card,
+.stat,
+.option-card,
+.summary-card,
+.place-card,
+.hit {
+  box-shadow: var(--shadow);
+}
+.sheet {
+  background: var(--paper-2);
+  border-color: var(--sand);
+  box-shadow: 0 -4px 18px rgb(0 0 0 / 0.14);
+}
+.sheet-head {
+  background: var(--paper-2);
+}
+.place-card {
+  background: var(--paper);
+  border-left: 6px solid var(--group-colour, var(--sand));
+}
+.place-errands {
+  --group-colour: var(--errands);
+}
+.place-treats {
+  --group-colour: var(--treats);
+}
+.place-wellbeing {
+  --group-colour: var(--wellbeing);
+}
+
+/* Category chips: the dot and, when chosen, the whole chip take the group colour */
+.cat-chip {
+  background: var(--paper);
+  color: var(--ink);
+  border-color: var(--sand);
+  box-shadow: var(--shadow);
+}
+.cat-chip[aria-pressed="true"] {
+  background: var(--group-colour);
+  border-color: var(--group-colour);
+  color: var(--on-accent);
+}
+.cat-treats[aria-pressed="true"] {
+  color: var(--on-treats);
+}
+.cat-chip[aria-pressed="true"]::before {
+  background: currentColor;
+}
+.cat-group-label {
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  color: var(--ink);
+}
+.radius,
+.locate-btn {
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+.radius button {
+  color: var(--ink);
+}
+.radius button[aria-pressed="true"] {
+  background: var(--teal);
+  color: var(--on-accent);
+}
+.map-box {
+  background: var(--sage);
+}
+.map-credit {
+  position: absolute;
+  left: 6px;
+  bottom: 2px;
+  z-index: 4;
+  font-size: 0.7rem;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--paper) 85%, transparent);
+  padding: 0 4px;
+  border-radius: 4px;
+  pointer-events: none;
+}
+.map-note {
+  bottom: auto;
+  top: 60px;
+  background: var(--paper);
+}
+:root[data-theme="dark"] .maplibregl-ctrl-attrib,
+:root[data-theme="dark"] .maplibregl-ctrl-attrib.maplibregl-compact {
+  background: rgb(32 31 29 / 0.92) !important;
+  color: var(--ink-soft);
+}
+:root[data-theme="dark"] .maplibregl-ctrl-attrib a {
+  color: var(--ink);
+}
+:root[data-theme="dark"] .maplibregl-ctrl-attrib-button {
+  filter: invert(1);
+}
+.bottom-nav {
+  background: var(--paper);
+  border-top-color: var(--sand);
+}
+.bottom-nav a[aria-current="page"] {
+  color: var(--teal);
+}
+.line-chip {
+  min-width: 2.4em;
+  text-align: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+}
+.mode-tab {
+  background: var(--paper);
+}
+.mode-tab strong {
+  font-size: var(--text-lg);
+}
+.dep-chip {
+  background: var(--sched-bg);
+  border-color: transparent;
+  color: var(--ink);
+}
+.dep-live {
+  background: var(--ok-bg);
+  border-color: var(--errands);
+}
+.dep-live small {
+  color: var(--ok-ink);
+}
+.time-bar {
+  height: 14px;
+  gap: 3px;
+  background: transparent;
+}
+.time-bar > span {
+  border-radius: 4px;
+}
+.bar-walk {
+  background: repeating-linear-gradient(90deg, var(--ink-soft) 0 5px, transparent 5px 9px);
+}
+.bar-wait {
+  background: var(--sand);
+}
+.bar-ride {
+  background: var(--teal);
+}
+.route-start {
+  background: var(--teal);
+}
+.you-dot {
+  background: #1a73e8;
+}
+input,
+textarea,
+select {
+  background: var(--paper);
+  color: var(--ink);
+  border-color: var(--sand);
+}
+::placeholder {
+  color: var(--ink-soft);
+  opacity: 0.85;
+}
+:root[data-stim="off"] .line-chip {
+  filter: saturate(0.85);
+}
+
+/* Warnings and last-train alerts use the Red Line colour */
+.alert-loud,
+.step-warning {
+  border-color: var(--warn);
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+.option-warning {
+  color: var(--warn);
+}
+
+/* Hitlist: missions are Green, add-ons take their own group colour */
+.hit {
+  border-left: 6px solid var(--group-colour, var(--sand));
+}
+.tag-mission {
+  background: var(--errands);
+  color: var(--on-accent);
+}
+.tag-addon {
+  background: var(--group-colour, var(--treats));
+  color: var(--on-accent);
+}
+.hit-treats .tag-addon {
+  color: var(--on-treats);
+}
+
+/* Bingo squares: stops take the colour of what they are; "notice" squares are Blue; free space is gold */
+.square.stop {
+  border-color: var(--group-colour, var(--errands));
+  border-style: solid;
+  border-width: 3px;
+}
+.square.extra {
+  border-color: var(--wellbeing);
+}
+.square.done {
+  background: var(--group-colour, var(--teal));
+  border-color: var(--group-colour, var(--teal));
+  color: var(--on-accent);
+}
+.square.extra.done {
+  background: var(--wellbeing);
+  border-color: var(--wellbeing);
+}
+.square.done.sq-treats {
+  color: var(--on-treats);
+}
+.square.free {
+  background: color-mix(in srgb, var(--gold) 25%, var(--paper));
+  border-color: var(--gold);
+}
+
+/* ---------- Profile: rank, badges ---------- */
+.rank-card {
+  margin-top: var(--s4);
+  padding: var(--s4);
+  border-radius: var(--radius);
+  background: var(--paper);
+  border: 1.5px solid var(--sand);
+  border-top: 6px solid var(--errands);
+  display: grid;
+  gap: var(--s1);
+}
+.rank-card .soft {
+  margin: 0;
+}
+.rank-level {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--teal);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.rank-name {
+  font-size: var(--text-xl);
+  line-height: 1.2;
+}
+.rank-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--sand);
+  overflow: hidden;
+  margin-top: var(--s2);
+}
+.rank-bar span {
+  display: block;
+  height: 100%;
+  background: var(--teal);
+  border-radius: 5px;
+}
+.rank-up {
+  margin-top: var(--s3);
+  font-weight: 700;
+  color: var(--gold);
+}
+.soft-inline {
+  font-family: var(--font-text);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+.badges {
+  list-style: none;
+  margin: var(--s3) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s2);
+}
+.badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+  padding: var(--s3) var(--s2);
+  border-radius: var(--radius);
+  border: 1.5px dashed var(--sand);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+.badge strong {
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+.badge small {
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
+.badge-icon {
+  font-size: 1.6rem;
+  line-height: 1.2;
+  opacity: 0.45;
+}
+.badge.earned {
+  border-style: solid;
+  border-color: var(--gold);
+  color: var(--ink);
+  background: var(--paper);
+}
+.badge.earned .badge-icon {
+  opacity: 1;
+  color: var(--gold);
+}
+.stat strong {
+  font-family: var(--font-head);
+  color: var(--teal);
+}
+
+/* ---------- Brain dump ---------- */
+.braindump {
+  margin-top: var(--s4);
+  padding: var(--s3) var(--s4);
+  border: 1.5px solid var(--sand);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+.braindump summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  cursor: pointer;
+}
+.braindump textarea {
+  width: 100%;
+  margin-top: var(--s2);
+  padding: var(--s3);
+  border: 1.5px solid var(--sand);
+  border-radius: 12px;
+  font: inherit;
+}
+.dump-chips {
+  list-style: none;
+  margin: var(--s3) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s2);
+}
+.dump-chip {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s3);
+  border-radius: var(--radius);
+  background: var(--paper-2);
+  border: 1.5px solid var(--sand);
+}
+.dump-main {
+  display: flex;
+  flex-direction: column;
+}
+.dump-main .soft {
+  margin: 0;
+}
+.dump-actions {
+  display: flex;
+  gap: var(--s2);
+  align-items: center;
+}
+.dump-x {
+  margin-left: auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid var(--sand);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* =========================================================
+   Feedback: toasts, dialogs, busy states, banners
+   ========================================================= */
+.toasts {
+  position: fixed;
+  z-index: 50;
+  left: 0;
+  right: 0;
+  bottom: calc(64px + env(safe-area-inset-bottom) + var(--s3));
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 var(--s3);
+  display: grid;
+  gap: var(--s2);
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  padding: var(--s3) var(--s3) var(--s3) var(--s4);
+  border-radius: 14px;
+  background: var(--ink);
+  color: var(--cream);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+  border-left: 6px solid var(--teal);
+}
+.toast-success {
+  border-left-color: var(--errands);
+}
+.toast-error {
+  border-left-color: var(--warn);
+}
+.toast-icon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  background: var(--cream);
+  color: var(--ink);
+}
+.toast-error .toast-icon {
+  background: var(--warn);
+  color: #fff;
+}
+.toast-success .toast-icon {
+  background: var(--errands);
+  color: #fff;
+}
+.toast-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-size: var(--text-sm);
+  line-height: 1.35;
+}
+.toast-text span {
+  opacity: 0.85;
+}
+.toast-action {
+  flex: none;
+  min-height: 40px;
+  padding: 0 var(--s3);
+  border-radius: 999px;
+  border: 1.5px solid var(--cream);
+  background: transparent;
+  color: var(--cream);
+  font: inherit;
+  font-weight: 700;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.toast-close {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cream);
+  font: inherit;
+  cursor: pointer;
+}
+
+.dialog {
+  width: min(440px, calc(100vw - 2rem));
+  padding: 0;
+  border: 0;
+  border-radius: 20px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 16px 48px rgb(0 0 0 / 0.3);
+}
+.dialog::backdrop {
+  background: rgb(20 18 16 / 0.5);
+}
+.dialog-box {
+  padding: var(--s5);
+  display: grid;
+  gap: var(--s3);
+}
+.dialog-box h2 {
+  margin: 0;
+}
+.dialog-buttons {
+  display: flex;
+  gap: var(--s2);
+}
+.dialog-buttons .btn {
+  margin-top: var(--s2);
+}
+.btn-danger {
+  background: var(--warn);
+  border-color: var(--warn);
+  color: #fff;
+}
+
+.spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  border: 2.5px solid currentColor;
+  border-right-color: transparent;
+  vertical-align: -0.15em;
+  opacity: 0.8;
+}
+.working {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+  margin-top: var(--s3);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+.still-working {
+  flex-basis: 100%;
+  font-style: italic;
+}
+.skeletons {
+  display: grid;
+  gap: var(--s2);
+  margin-top: var(--s2);
+}
+.skeleton {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s4);
+  border-radius: var(--radius);
+  border: 1.5px solid var(--sand);
+  background: var(--paper);
+}
+.skeleton span {
+  height: 14px;
+  border-radius: 7px;
+  background: var(--sand);
+}
+.skeleton span:first-child {
+  width: 60%;
+  height: 18px;
+}
+.skeleton span:last-child {
+  width: 85%;
+}
+.inline-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin: var(--s2) 0;
+  padding: var(--s2) var(--s3);
+  border-radius: 12px;
+  font-size: var(--text-sm);
+  background: var(--sched-bg);
+  color: var(--ink);
+  border: 1.5px solid color-mix(in srgb, var(--treats) 50%, transparent);
+}
+.banner-warn {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  border-color: color-mix(in srgb, var(--warn) 50%, transparent);
+}
+.banner-icon {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  background: var(--treats);
+  color: var(--on-treats);
+}
+.banner-warn .banner-icon {
+  background: var(--warn);
+  color: #fff;
+}
+.banner-text {
+  flex: 1;
+}
+.banner-action {
+  flex: none;
+  min-height: 40px;
+  padding: 0 var(--s3);
+  border-radius: 999px;
+  border: 1.5px solid currentColor;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.why-disabled {
+  margin-top: var(--s2);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  text-align: center;
+}
+.theme-toggle.compact button {
+  min-height: 40px;
+  font-size: var(--text-sm);
+}
+.brand-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+/* Instant press feedback: a colour change everywhere; a tiny press-in only in Stim mode */
+button,
+.btn,
+.chip,
+.cat-chip,
+a.card {
+  transition: background-color var(--press) ease-out, border-color var(--press) ease-out, opacity var(--press) ease-out,
+    transform var(--press) ease-out;
+}
+button:active:not(:disabled),
+.btn:active,
+a.card:active {
+  opacity: 0.8;
+}
+:root[data-stim="on"] button:active:not(:disabled),
+:root[data-stim="on"] .btn:active {
+  transform: scale(0.97);
+}
+button:disabled {
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .spinner {
+    animation: spin 0.9s linear infinite;
+  }
+  .toast {
+    animation: fade-in 0.2s ease-out;
+  }
+  :root[data-stim="on"] .toast {
+    animation: toast-up 0.25s ease-out;
+  }
+  .skeleton span {
+    animation: skeleton-fade 1.4s ease-in-out infinite;
+  }
+  .dialog[open] {
+    animation: fade-in 0.15s ease-out;
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes toast-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes skeleton-fade {
+    50% {
+      opacity: 0.45;
+    }
+  }
+  /* No-stim: fades only, so the sliding sheet and cards become fades */
+  :root[data-stim="off"] .sheet-in,
+  :root[data-stim="off"] .card-slide {
+    animation-name: fade-in;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* A still spinner would look broken: show a quiet pulsing-free ring */
+  .spinner {
+    border-right-color: currentColor;
+    opacity: 0.5;
+  }
+}
+
+/* =========================================================
+   Step progress drawn like stops on a subway line
+   ========================================================= */
+.subway {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: var(--s3) 0 var(--s4);
+  padding: 0 4px;
+  list-style: none;
+}
+.subway::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 50%;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 3px;
+  background: var(--sand);
+}
+.subway::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 3px;
+  width: var(--done, 0%);
+  background: var(--teal);
+}
+.subway li {
+  position: relative;
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 3px solid var(--stop-colour, var(--ink-soft));
+}
+.subway li.passed {
+  background: var(--stop-colour, var(--teal));
+}
+.subway li.here {
+  width: 26px;
+  height: 26px;
+  background: var(--paper);
+  border-width: 5px;
+  box-shadow: 0 0 0 3px var(--paper);
+}
+.stop-walk {
+  --stop-colour: var(--ink-soft);
+}
+.stop-stop {
+  --stop-colour: var(--errands);
+}
+.stop-start,
+.stop-end {
+  --stop-colour: var(--teal);
+}
+.subway.many li {
+  width: 10px;
+  height: 10px;
+  border-width: 2px;
+}
+.subway.many li.here {
+  width: 20px;
+  height: 20px;
+  border-width: 4px;
+}
+.sq-errands {
+  --group-colour: var(--errands);
+}
+.sq-treats {
+  --group-colour: var(--treats);
+}
+.sq-wellbeing {
+  --group-colour: var(--wellbeing);
+}
+.hit-errands {
+  --group-colour: var(--errands);
+}
+.hit-treats {
+  --group-colour: var(--treats);
+}
+.hit-wellbeing {
+  --group-colour: var(--wellbeing);
+}
+.empty-state {
+  display: grid;
+  gap: var(--s2);
+  justify-items: start;
+  margin: var(--s3) 0;
+  padding: var(--s4);
+  border-radius: var(--radius);
+  border: 1.5px dashed var(--sand);
+}
+.empty-state p {
+  margin: 0;
+}
+.theme-toggle {
+  grid-template-columns: repeat(3, 1fr);
+}
+.theme-toggle.compact {
+  flex: none;
+  margin: 0;
+  padding: 3px;
+  gap: 2px;
+}
+.theme-toggle.compact button {
+  min-height: 40px;
+  padding: 0 10px;
+  font-size: 0.85rem;
 }

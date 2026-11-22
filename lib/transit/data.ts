@@ -1,42 +1,24 @@
-// A small HAND-BUILT map of the launch-area subway: stations, lines, platform names.
-// Station ids, coordinates and platform names come from the MBTA API (see scripts/mbta-spike.ts).
-// Stop order and branch terminals are written by hand. Only the part of each line near the launch area is listed.
+// A small HAND-BUILT map of the central subway: stations, lines, platform names.
+// Station names, coordinates, entrances and terminals come from the MBTA API (npm run sync:terminals writes
+// stations.generated.ts and terminals.generated.ts). The stop order of each line is written by hand and checked
+// by that same script. Only the central part of each line is listed.
 
+import { STATION_DATA } from "./stations.generated";
 import { TERMINALS } from "./terminals.generated";
 
 export type Station = { id: string; name: string; lat: number; lng: number };
+
+export type Family = "Green Line" | "Orange Line" | "Red Line" | "Blue Line";
 
 export type Line = {
   id: string; // our own short id
   routeId: string; // the MBTA route id, e.g. "Green-B"
   name: string; // what riders call it, e.g. "Green Line (B)"
-  family: "Green Line" | "Orange Line";
-  stations: string[]; // station ids in order along the line
+  family: Family;
+  stations: string[]; // station ids in order along the line (west/south first)
   towardFirst: string; // terminal you head to when riding toward stations[0] (from the MBTA routes data)
   towardLast: string; // terminal you head to when riding toward the last station (from the MBTA routes data)
 };
-
-export const STATIONS: Station[] = [
-  { id: "place-kencl", name: "Kenmore", lat: 42.3489, lng: -71.0952 },
-  { id: "place-fenwy", name: "Fenway", lat: 42.3454, lng: -71.1042 },
-  { id: "place-hymnl", name: "Hynes Convention Center", lat: 42.3479, lng: -71.0879 },
-  { id: "place-coecl", name: "Copley", lat: 42.35, lng: -71.0774 },
-  { id: "place-armnl", name: "Arlington", lat: 42.3519, lng: -71.0709 },
-  { id: "place-boyls", name: "Boylston", lat: 42.353, lng: -71.0646 },
-  { id: "place-pktrm", name: "Park Street", lat: 42.3564, lng: -71.0624 },
-  { id: "place-gover", name: "Government Center", lat: 42.3597, lng: -71.0592 },
-  { id: "place-haecl", name: "Haymarket", lat: 42.363, lng: -71.0583 },
-  { id: "place-north", name: "North Station", lat: 42.3656, lng: -71.0613 },
-  { id: "place-mfa", name: "Museum of Fine Arts", lat: 42.3377, lng: -71.0955 },
-  { id: "place-nuniv", name: "Northeastern University", lat: 42.3404, lng: -71.0888 },
-  { id: "place-symcl", name: "Symphony", lat: 42.3427, lng: -71.0851 },
-  { id: "place-prmnl", name: "Prudential", lat: 42.3456, lng: -71.0817 },
-  { id: "place-bbsta", name: "Back Bay", lat: 42.3473, lng: -71.0757 },
-  { id: "place-tumnl", name: "Tufts Medical Center", lat: 42.3497, lng: -71.0639 },
-  { id: "place-chncl", name: "Chinatown", lat: 42.3525, lng: -71.0628 },
-  { id: "place-dwnxg", name: "Downtown Crossing", lat: 42.3555, lng: -71.0602 },
-  { id: "place-state", name: "State", lat: 42.359, lng: -71.0576 },
-];
 
 // Stations a short walk apart (about 5 minutes or less), so you can change between lines outside the station.
 // Walking time is worked out from distance and labelled as an estimate wherever it is shown.
@@ -45,6 +27,7 @@ export const WALK_LINKS: [string, string][] = [
   ["place-haecl", "place-gover"], // Haymarket (Orange) to Government Center (Green)
   ["place-state", "place-gover"], // State (Orange) to Government Center (Green)
   ["place-chncl", "place-boyls"], // Chinatown (Orange) to Boylston (Green)
+  ["place-bomnl", "place-gover"], // Bowdoin (Blue) to Government Center (Green)
 ];
 
 // Green Line trunk shared by B, C, D and E (west to east).
@@ -56,7 +39,7 @@ export const LINES: Line[] = [
     routeId: "Green-B",
     name: "Green Line (B)",
     family: "Green Line",
-    stations: ["place-kencl", "place-hymnl", ...TRUNK],
+    stations: ["place-harvd", "place-brico", "place-babck", "place-amory", "place-bucen", "place-buest", "place-bland", "place-kencl", "place-hymnl", ...TRUNK],
     towardFirst: TERMINALS["Green-B"].first,
     towardLast: TERMINALS["Green-B"].last,
   },
@@ -96,7 +79,38 @@ export const LINES: Line[] = [
     towardFirst: TERMINALS["Orange"].first,
     towardLast: TERMINALS["Orange"].last,
   },
+  {
+    id: "red",
+    routeId: "Red",
+    name: "Red Line",
+    family: "Red Line",
+    // South to north. At JFK/UMass the line splits (Ashmont, Braintree) and platforms are named per branch, so we stop at Andrew.
+    stations: [
+      "place-andrw", "place-brdwy", "place-sstat", "place-dwnxg", "place-pktrm",
+      "place-chmnl", "place-knncl", "place-cntsq", "place-harsq", "place-portr", "place-davis", "place-alfcl",
+    ],
+    towardFirst: TERMINALS["Red"].first,
+    towardLast: TERMINALS["Red"].last,
+  },
+  {
+    id: "blue",
+    routeId: "Blue",
+    name: "Blue Line",
+    family: "Blue Line",
+    stations: ["place-bomnl", "place-gover", "place-state", "place-aqucl", "place-mvbcl", "place-aport", "place-wimnl"],
+    towardFirst: TERMINALS["Blue"].first,
+    towardLast: TERMINALS["Blue"].last,
+  },
 ];
+
+// Every station on our lines, with the MBTA's own name and position.
+export const STATIONS: Station[] = [...new Set(LINES.flatMap((l) => l.stations))].flatMap((id) => {
+  const s = STATION_DATA[id];
+  return s ? [{ id, name: s.name, lat: s.lat, lng: s.lng }] : []; // missing = run npm run sync:terminals
+});
+
+// Station entrances as the MBTA names them (only where the MBTA lists them).
+export const entrancesOf = (stationId: string) => STATION_DATA[stationId]?.entrances ?? [];
 
 // Platform names as the MBTA lists them. "first" = riding toward stations[0], "last" = toward the last station.
 // A line id key beats the "*" default for that station.
@@ -115,6 +129,12 @@ export const PLATFORMS: Record<string, PlatformNames> = {
       "place-hymnl": "Kenmore & West",
       "place-coecl": "Kenmore & West, Heath Street",
       "place-pktrm:green-b": "Boston College",
+      "place-bland": "Boston College",
+      "place-buest": "Boston College",
+      "place-bucen": "Boston College",
+      "place-amory": "Boston College",
+      "place-babck": "Boston College",
+      "place-brico": "Boston College",
       "place-pktrm:green-c": "Cleveland Circle",
       "place-pktrm:green-d": "Riverside",
       "place-pktrm:green-e": "Heath Street",
@@ -136,7 +156,17 @@ export const PLATFORMS: Record<string, PlatformNames> = {
   },
 };
 
+// Names the MBTA uses for some platforms that don't help a rider ("Exit Only", "Track 1", "Red Line").
+const UNHELPFUL_PLATFORM = /exit only|^track\b|^(red|blue|orange|green) line$/i;
+
 export function platformName(line: Line, stationId: string, toward: "first" | "last"): string {
+  const name = rawPlatformName(line, stationId, toward);
+  return UNHELPFUL_PLATFORM.test(name) ? (toward === "first" ? line.towardFirst : line.towardLast) : name;
+}
+
+function rawPlatformName(line: Line, stationId: string, toward: "first" | "last"): string {
+  // Red and Blue platforms are named after the terminal they head to (checked by npm run sync:terminals).
+  if (line.family === "Red Line" || line.family === "Blue Line") return toward === "first" ? line.towardFirst : line.towardLast;
   const table = PLATFORMS[line.family === "Orange Line" ? "orange" : "green"][toward];
   return (
     table[`${stationId}:${line.id}`] ??

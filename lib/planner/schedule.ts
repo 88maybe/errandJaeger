@@ -5,7 +5,7 @@
 import { CHANGE_WALK_MIN } from "../transit/route";
 import { rideLines, towardText } from "../transit/text";
 import { legKey, type CheckResponse, type TripTime } from "../transit/client";
-import { addMinutes, closingText, formatNY, isOpenFor } from "./time";
+import { addMinutes, closingText, formatNY, placeOpenFor } from "./time";
 import type { Leg, RoutePlan, Stop, TransitLeg } from "./types";
 
 export const LAST_TRAIN_WINDOW_MIN = 45;
@@ -67,7 +67,7 @@ export function retimePlan(plan: RoutePlan, departures: Departures | null, opts:
     if ("stop" in event) {
       const s = event.stop;
       const leaveAt = addMinutes(cursor, s.dwellMin);
-      const open = isOpenFor(s.place.hours, cursor, s.dwellMin);
+      const open = placeOpenFor(s.place, cursor, s.dwellMin);
       const moved = Math.round((cursor.getTime() - new Date(s.arriveAt).getTime()) / 60000) !== 0;
       if (!open) {
         closed.push(s.place.id);

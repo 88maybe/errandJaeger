@@ -2,6 +2,10 @@
 // Source: MBTA /routes direction_destinations. West/South is "first", East/North is "last".
 export const TERMINALS_FETCHED = "2026-11-22";
 export const TERMINALS: Record<string, { first: string; last: string }> = {
+  "Red": {
+    "first": "Ashmont/Braintree",
+    "last": "Alewife"
+  },
   "Orange": {
     "first": "Forest Hills",
     "last": "Oak Grove"
@@ -21,5 +25,9 @@ export const TERMINALS: Record<string, { first: string; last: string }> = {
   "Green-E": {
     "first": "Heath Street",
     "last": "Medford/Tufts"
+  },
+  "Blue": {
+    "first": "Bowdoin",
+    "last": "Wonderland"
   }
 };

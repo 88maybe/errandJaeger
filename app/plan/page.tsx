@@ -6,6 +6,9 @@ import { ChangeCard, LatePanel, NowCard } from "@/components/LiveTrip";
 import StepView from "@/components/StepView";
 import Timeline from "@/components/Timeline";
 import TrainNotices from "@/components/TrainNotices";
+import { Skeleton, Working } from "@/components/Busy";
+import Dialog from "@/components/Dialog";
+import { useToast } from "@/components/Toast";
 import { aiActions } from "@/lib/ai/client";
 import { shortName } from "@/lib/bingo";
 import { dropStop, missedTrain, runningLate, type Replanned } from "@/lib/planner/replan";
@@ -15,14 +18,32 @@ import { buildSteps } from "@/lib/planner/timeline";
 import { fetchTrainData } from "@/lib/transit/client";
 import { useLive } from "@/lib/useLive";
 import { useOuting } from "@/lib/useOuting";
-import type { Outing } from "@/lib/storage";
+import { finishOuting, type Outing } from "@/lib/storage";
+import { useRouter } from "next/navigation";
 
 export default function PlanPage() {
   const { outing, loaded, update } = useOuting();
+  const router = useRouter();
+
+  // A trip without a bingo card: finishing it counts toward your profile.
+  async function finishTrip() {
+    setFinishing(true);
+    const done = await finishOuting();
+    router.push(done ? "/done" : "/");
+  }
   // Calmer mode opens on the one-step view. You can switch either way.
   const [view, setView] = useState<"overview" | "steps" | null>(null);
   const [simplifying, setSimplifying] = useState(false); // AI is rewriting the steps
   const [busy, setBusy] = useState(false); // re-timing the plan
+  const [dropAsk, setDropAsk] = useState<{ id: string; name: string } | null>(null); // "drop this stop?" dialog
+  const [finishing, setFinishing] = useState(false);
+  const changeRef = useRef<HTMLDivElement>(null);
+  const toast = useToast();
+  // Show "what changed" right where you are looking.
+  const showChange = () =>
+    requestAnimationFrame(() =>
+      changeRef.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" }),
+    );
   const tried = useRef("");
   const live = useLive(outing?.plan ?? null, !!outing && !outing.finishedAt, outing?.train);
 
@@ -57,7 +78,7 @@ export default function PlanPage() {
     });
   }, [loaded, outing, update]);
 
-  if (!loaded) return <p className="soft">Loading…</p>;
+  if (!loaded) return <Skeleton rows={2} label="Loading" />;
 
   if (!outing) {
     return (
@@ -91,6 +112,8 @@ export default function PlanPage() {
     const now = new Date();
     const r = kind === "missed" ? missedTrain(outing.plan, outing.train ?? null, now) : runningLate(outing.plan, outing.train ?? null, now, kind);
     update((prev) => applyReplan(prev, r));
+    toast({ kind: "success", text: kind === "missed" ? "Picked the next train for you." : `Re-timed for ${kind} min later.`, next: "See what changed just below." });
+    showChange();
   }
 
   async function onDrop(placeId: string) {
@@ -100,6 +123,8 @@ export default function PlanPage() {
     const dropped = dropStop(outing.plan, placeId, new Date(), outing.mode);
     if (!dropped) {
       setBusy(false);
+      setDropAsk(null);
+      toast({ kind: "error", text: `Couldn't drop ${name}.`, next: "Try again, or carry on with the plan as it is.", action: { label: "Try again", onClick: () => onDrop(placeId) } });
       return;
     }
     // New train rides may need schedule data we don't have yet.
@@ -110,6 +135,9 @@ export default function PlanPage() {
     const card = outing.card.map((sq) => (sq.id === `stop-${placeId}` ? { id: sq.id, kind: "extra" as const, label: "Take a moment to look around" } : sq));
     update((prev) => ({ ...applyReplan(prev, r, [`Dropped ${name}.`], card), train: merged }));
     setBusy(false);
+    setDropAsk(null);
+    toast({ kind: "success", text: `Dropped ${name}.`, next: fresh || !dropped.plan.legs.some((l) => l.type === "transit") ? "The rest of the plan is re-timed." : "Re-timed with estimates: couldn't check train times." });
+    showChange();
   }
 
   // Every stop was dropped: say so kindly and point back to Home.
@@ -144,19 +172,39 @@ export default function PlanPage() {
 
       <TrainNotices plan={outing.plan} />
 
+      {!outing.finishedAt && outing.plan.stops.length > 0 && (
+        <Link href="/go" className="btn btn-secondary directions-link">
+          Directions to the next stop (transit, walk or car)
+        </Link>
+      )}
+
       {!outing.finishedAt && <NowCard plan={outing.plan} live={live} />}
 
+
+      {!outing.finishedAt && <LatePanel onLate={onLate} busy={busy} />}
+      <div ref={changeRef}>
       {change && (
         <ChangeCard
           lines={change.lines}
           drops={drops}
           busy={busy}
-          onDrop={onDrop}
+          onDrop={(id) => setDropAsk({ id, name: drops.find((d) => d.id === id)?.name ?? "that stop" })}
           onDismiss={() => update((prev) => ({ ...prev, change: undefined }))}
         />
       )}
-
-      {!outing.finishedAt && <LatePanel onLate={onLate} busy={busy} />}
+      </div>
+      <Dialog
+        open={!!dropAsk}
+        title={dropAsk ? `Drop ${dropAsk.name}?` : "Drop this stop?"}
+        confirmLabel="Drop it"
+        cancelLabel="Keep it"
+        danger
+        busy={busy}
+        onCancel={() => setDropAsk(null)}
+        onConfirm={() => dropAsk && onDrop(dropAsk.id)}
+      >
+        <p>It will be closed by the time you get there. We&apos;ll re-time the rest of your plan without it.</p>
+      </Dialog>
 
       <div className="segmented" role="group" aria-label="How to see your plan">
         <button type="button" aria-pressed={activeView === "overview"} onClick={() => setView("overview")}>
@@ -170,13 +218,19 @@ export default function PlanPage() {
       {activeView === "overview" ? (
         <>
           <Timeline plan={outing.plan} live={hasTrains ? live.infos : undefined} />
-          <Link href="/bingo" className="btn btn-primary">
-            Open my bingo card
-          </Link>
+          {outing.bingo === false ? (
+            <button type="button" className="btn btn-primary" onClick={finishTrip} disabled={finishing}>
+              {finishing ? "Working…" : "Finish outing"}
+            </button>
+          ) : (
+            <Link href="/bingo" className="btn btn-primary">
+              Open my bingo card
+            </Link>
+          )}
         </>
       ) : (
         <>
-          {simplifying && <p className="soft">Making each step simpler…</p>}
+          <Working busy={simplifying} text="Making each step simpler…" slowText="Still working. The standard steps are below if you'd rather start now." />
           {!simplifying && outing.mode === "calm" && outing.ai?.steps === "failed" && <p className="soft">Using the standard steps.</p>}
           <StepView
             plan={outing.plan}

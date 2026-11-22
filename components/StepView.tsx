@@ -4,9 +4,11 @@ import { buildSteps } from "@/lib/planner/timeline";
 import type { Basis, RoutePlan } from "@/lib/planner/types";
 import type { LiveInfo } from "@/lib/transit/live";
 import { LiveLine } from "./LiveTrip";
+import LineChip from "./LineChip";
+import { familyOf, LINE_COLOUR } from "@/lib/transit/look";
 import TimeChip from "./TimeChip";
 
-type Step = { kind: "start" | "walk" | "stop" | "transit" | "end"; title: string; detail: string; time?: string; warning?: string; basis?: Basis; liveKey?: string };
+type Step = { kind: "start" | "walk" | "stop" | "transit" | "end"; title: string; detail: string; time?: string; warning?: string; basis?: Basis; liveKey?: string; routeIds?: string[] };
 
 // One big step at a time, with Back and Next.
 export default function StepView({
@@ -30,6 +32,7 @@ export default function StepView({
       detail: actions?.[i] || item.detail, // simple action if we have one, else the standard text
       warning: item.warning,
       basis: item.basis,
+      routeIds: item.routeIds,
       liveKey: item.kind === "transit" && item.title.startsWith("Ride") ? undefined : item.startTime,
       time: `${formatNY(item.startTime)} to ${formatNY(item.endTime)}`,
     })),
@@ -45,9 +48,24 @@ export default function StepView({
       <p className="step-count">
         Step {index + 1} of {steps.length}
       </p>
-      <div className="progress" role="progressbar" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={index + 1}>
-        <div style={{ width: `${((index + 1) / steps.length) * 100}%` }} />
-      </div>
+      {/* Progress drawn like stops on a subway line: rides take their line colour, stops are Green. */}
+      <ol
+        className={`subway ${steps.length > 12 ? "many" : ""}`}
+        role="progressbar"
+        aria-valuemin={1}
+        aria-valuemax={steps.length}
+        aria-valuenow={index + 1}
+        aria-label={`Step ${index + 1} of ${steps.length}`}
+        style={{ ["--done" as string]: `calc((100% - 20px) * ${steps.length > 1 ? index / (steps.length - 1) : 0})` }}
+      >
+        {steps.map((st, i) => (
+          <li
+            key={i}
+            className={`stop-${st.kind} ${i < index ? "passed" : ""} ${i === index ? "here" : ""}`}
+            style={st.routeIds ? { ["--stop-colour" as string]: LINE_COLOUR[familyOf(st.routeIds)] } : undefined}
+          />
+        ))}
+      </ol>
 
       <div className={`step-card ${current.kind}`}>
         {current.time && (
@@ -56,7 +74,9 @@ export default function StepView({
             {current.basis && <TimeChip basis={current.basis} />}
           </p>
         )}
-        <h2 className="step-title">{current.title}</h2>
+        <h2 className="step-title">
+          {current.routeIds && <LineChip routeIds={current.routeIds} />} {current.title}
+        </h2>
         <p className="step-detail">{current.detail}</p>
         {current.kind === "transit" && current.liveKey && live?.[current.liveKey] && <LiveLine info={live[current.liveKey]} />}
         {current.warning && (

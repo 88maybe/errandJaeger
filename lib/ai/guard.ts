@@ -5,13 +5,22 @@ const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = 20;
 const hits = new Map<string, number[]>();
 
-function tooMany(ip: string): boolean {
+function tooMany(ip: string, max = MAX_PER_WINDOW, bucket = hits): boolean {
   const now = Date.now();
-  const recent = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
+  const recent = (bucket.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
   recent.push(now);
-  hits.set(ip, recent);
-  if (hits.size > 5000) hits.clear(); // keep memory small
-  return recent.length > MAX_PER_WINDOW;
+  bucket.set(ip, recent);
+  if (bucket.size > 5000) bucket.clear(); // keep memory small
+  return recent.length > max;
+}
+
+// Map search and directions are cheap free services, but a directions screen asks several at once.
+const MAX_GET_PER_WINDOW = 90;
+const getHits = new Map<string, number[]>();
+
+// For GET routes (no body): true when this visitor is asking too often.
+export function rateLimited(request: Request): boolean {
+  return tooMany(request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "local", MAX_GET_PER_WINDOW, getHits);
 }
 
 // Returns the JSON body, or a ready-made error Response.

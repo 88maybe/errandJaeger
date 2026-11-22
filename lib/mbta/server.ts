@@ -1,3 +1,5 @@
+import { OUTSIDE_HEADERS } from "../http";
+
 // SERVER ONLY. Talks to the MBTA V3 API. The key (MBTA_API_KEY) is optional and never leaves the server.
 // Every call has a timeout and a short cache, and returns null on any problem so the app can carry on.
 
@@ -24,7 +26,7 @@ export async function mbtaGet<T = any>(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const key = process.env.MBTA_API_KEY;
-    const res = await fetch(url, { headers: key ? { "x-api-key": key } : {}, signal: controller.signal, cache: "no-store" });
+    const res = await fetch(url, { headers: key ? { ...OUTSIDE_HEADERS, "x-api-key": key } : OUTSIDE_HEADERS, signal: controller.signal, cache: "no-store" });
     if (!res.ok) return null;
     const value = (await res.json()) as T;
     cache.set(cacheKey, { at: Date.now(), value });

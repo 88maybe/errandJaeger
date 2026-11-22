@@ -1,5 +1,6 @@
 "use client";
 
+import { Banner, Spinner } from "@/components/Busy";
 import { eventEnd, eventStart, orderedEvents } from "@/lib/planner/schedule";
 import { formatNY } from "@/lib/planner/time";
 import type { RoutePlan, TransitLeg } from "@/lib/planner/types";
@@ -80,7 +81,12 @@ export function NowCard({ plan, live }: { plan: RoutePlan; live: LiveState }) {
           The train we planned has already left. Tap &quot;I&apos;m running late&quot; then &quot;I missed it&quot; to pick the next one.
         </p>
       )}
-      {nextTrain && status === "unavailable" && <p className="soft">Live times aren&apos;t available right now, so these are scheduled times.</p>}
+      {nextTrain && status === "loading" && (
+        <p className="soft">
+          <Spinner /> Checking live train times…
+        </p>
+      )}
+      {nextTrain && status === "unavailable" && <Banner>Live times aren&apos;t available right now, so these are scheduled times.</Banner>}
     </section>
   );
 }

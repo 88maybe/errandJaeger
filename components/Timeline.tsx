@@ -3,6 +3,7 @@ import { buildTimeline, skippedNote } from "@/lib/planner/timeline";
 import type { RoutePlan } from "@/lib/planner/types";
 import type { LiveInfo } from "@/lib/transit/live";
 import { LiveLine } from "./LiveTrip";
+import LineChip from "./LineChip";
 import TimeChip from "./TimeChip";
 
 // The whole plan on one screen: summary, then walk, stop, walk, stop.
@@ -35,7 +36,7 @@ export default function Timeline({ plan, live }: { plan: RoutePlan; live?: Recor
               <TimeChip basis={item.basis} />
             </div>
             <strong>
-              {item.kind === "transit" && <span className="badge-train">Train</span>}
+              {item.kind === "transit" && item.routeIds && <LineChip routeIds={item.routeIds} />}
               {item.title}
             </strong>
             {item.kind === "transit" && live?.[item.startTime] && <LiveLine info={live[item.startTime]} />}
@@ -59,7 +60,7 @@ export default function Timeline({ plan, live }: { plan: RoutePlan; live?: Recor
 
       {note && <p className="notice">{note}</p>}
       {items.some((i) => i.kind === "transit") && (
-        <p className="soft">Train times are estimates. Live train times are not used yet, so check the MBTA before you go.</p>
+        <p className="soft">Train times marked Live or Scheduled come from the MBTA; the rest are estimates.</p>
       )}
       <p className="soft">Hours may vary, check before you go.</p>
     </section>

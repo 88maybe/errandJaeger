@@ -1,3 +1,4 @@
+import { OUTSIDE_HEADERS } from "../http";
 // SERVER ONLY. Talks to the Gemini API. The key comes from GEMINI_API_KEY (never sent to the browser).
 // Used only from files under app/api/. Never import this from a component.
 
@@ -20,7 +21,7 @@ export async function askGemini(args: { system: string; prompt: string; timeoutM
   try {
     const res = await fetch(`${BASE}/v1beta/models/${MODEL}:generateContent`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+      headers: { ...OUTSIDE_HEADERS, "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: args.system }] },
         contents: [{ role: "user", parts: [{ text: args.prompt }] }],

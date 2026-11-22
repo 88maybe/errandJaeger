@@ -2,10 +2,10 @@ import type { Stats } from "@/lib/stats";
 
 export default function StatsCards({ stats }: { stats: Stats }) {
   const tiles = [
+    { value: stats.streak, label: "Day streak" },
     { value: stats.outings, label: "Outings" },
     { value: stats.placesVisited, label: "Places visited" },
-    { value: `~${stats.minutesWalked} min`, label: "Planned walking time (estimate)" },
-    { value: stats.streak, label: "Day streak" },
+    { value: `${stats.minutesWalked} min`, label: "Planned walking (estimate)" },
   ];
   return (
     <div className="stats-grid">

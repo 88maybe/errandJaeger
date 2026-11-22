@@ -4,11 +4,24 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import BingoCard from "@/components/BingoCard";
+import { Skeleton, Working } from "@/components/Busy";
+import Dialog from "@/components/Dialog";
 import { aiBingoLabels } from "@/lib/ai/client";
 import { completedLines, isFullCard } from "@/lib/bingo";
 import { replanFromTick } from "@/lib/planner/replan";
-import { finishOuting } from "@/lib/storage";
+import { kindById } from "@/lib/nearby/categories";
+import { finishOuting, type Outing } from "@/lib/storage";
 import { useOuting } from "@/lib/useOuting";
+
+// Which colour group each stop square belongs to (from the place's map category, or what it was planned as).
+function squareGroups(outing: Outing): Record<string, "errands" | "treats" | "wellbeing"> {
+  const out: Record<string, "errands" | "treats" | "wellbeing"> = {};
+  for (const s of outing.plan.stops) {
+    const fromKind = s.place.kind ? kindById(s.place.kind)?.group : undefined;
+    out[`stop-${s.place.id}`] = fromKind ?? (s.need === "grocery" || s.need === "errand" ? "errands" : s.need === "snack" ? "treats" : "wellbeing");
+  }
+  return out;
+}
 
 export default function BingoPage() {
   const router = useRouter();
@@ -42,7 +55,7 @@ export default function BingoPage() {
     });
   }, [loaded, outing, update]);
 
-  if (!loaded) return <p className="soft">Loading…</p>;
+  if (!loaded) return <Skeleton rows={2} label="Loading" />;
 
   if (!outing) {
     return (
@@ -52,6 +65,24 @@ export default function BingoPage() {
           <p>Your bingo card appears once you have a plan.</p>
           <Link href="/" className="btn btn-primary">
             Make a plan
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  // Bingo is optional per trip.
+  if (outing.bingo === false) {
+    return (
+      <main>
+        <h1 className="page-title">Bingo</h1>
+        <div className="card empty">
+          <p>This trip has no bingo card. That&apos;s fine: just walk.</p>
+          <button type="button" className="btn btn-primary" onClick={() => update((prev) => ({ ...prev, bingo: true }))}>
+            Add a bingo card to this trip
+          </button>
+          <Link href="/plan" className="btn btn-secondary">
+            Back to the plan
           </Link>
         </div>
       </main>
@@ -105,7 +136,7 @@ export default function BingoPage() {
     <main>
       <h1 className="page-title">Bingo</h1>
       <p className="starting">{outing.ticked.length} of 8 ticked. Tap a square when you&apos;ve done it.</p>
-      {wording && <p className="soft">Making the square names friendlier…</p>}
+      <Working busy={wording} text="Making the square names friendlier…" slowText="Still working. The plain names stay if the AI helper is slow." />
       {!wording && outing.ai?.bingo === "failed" && <p className="soft">Using the simple square names.</p>}
 
       {banner && (
@@ -123,28 +154,22 @@ export default function BingoPage() {
         </p>
       )}
 
-      <BingoCard card={outing.card} ticked={outing.ticked} onTap={tap} />
+      <BingoCard card={outing.card} ticked={outing.ticked} onTap={tap} groups={squareGroups(outing)} />
 
-      {askEmpty && (
-        <div className="card confirm" role="alertdialog" aria-labelledby="empty-title">
-          <strong id="empty-title">Nothing ticked yet</strong>
-          <p>If you finish now, this outing won&apos;t count toward your stats or streak. That&apos;s okay.</p>
-          <div className="confirm-buttons">
-            <button type="button" className="btn btn-secondary" onClick={() => setAskEmpty(false)}>
-              Keep going
-            </button>
-            <button type="button" className="btn btn-primary" onClick={finish}>
-              Finish anyway
-            </button>
-          </div>
-        </div>
-      )}
+      <Dialog
+        open={askEmpty}
+        title="Nothing ticked yet"
+        confirmLabel="Finish anyway"
+        cancelLabel="Keep going"
+        onCancel={() => setAskEmpty(false)}
+        onConfirm={finish}
+      >
+        <p>If you finish now, this outing won&apos;t count toward your profile or streak. That&apos;s okay.</p>
+      </Dialog>
 
-      {!askEmpty && (
-        <button type="button" className="btn btn-secondary" onClick={finish}>
-          Finish outing
-        </button>
-      )}
+      <button type="button" className="btn btn-secondary" onClick={finish}>
+        Finish outing
+      </button>
     </main>
   );
 }

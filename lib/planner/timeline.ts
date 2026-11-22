@@ -14,6 +14,7 @@ export type TimelineItem = {
   basis: Basis; // where this item's time comes from (shown as a chip)
   warning?: string; // loud last-train warning for this item (shown on screen, never reworded by AI)
   keep?: string[]; // words the AI must keep if it rewords this item (transit facts)
+  routeIds?: string[]; // transit only: for the line chip
 };
 
 // Friendly names for each need.
@@ -21,6 +22,7 @@ export const NEED_LABEL: Record<Need, string> = {
   grocery: "Groceries",
   snack: "A snack",
   activity: "Something to do",
+  errand: "An errand",
   favorite: "A favorite spot",
 };
 
@@ -52,6 +54,7 @@ export function buildSteps(plan: RoutePlan): TimelineItem[] {
       endTime: boardEnd,
       basis: leg.departBasis ?? "estimate",
       keep: [leg.platform, ...leg.toward],
+      routeIds: leg.routeIds,
     });
     steps.push({
       kind: "transit",
@@ -64,6 +67,7 @@ export function buildSteps(plan: RoutePlan): TimelineItem[] {
       endTime: item.endTime,
       basis: leg.arriveBasis ?? "estimate",
       keep: [String(leg.stops), leg.getOffAt],
+      routeIds: leg.routeIds,
     });
   }
   return steps;
@@ -87,6 +91,7 @@ export function buildTimeline(plan: RoutePlan): TimelineItem[] {
         basis: leg.departBasis ?? "estimate",
         warning: leg.lastWarning ?? undefined,
         keep: transitKeep(leg),
+        routeIds: leg.routeIds,
       });
     } else {
       items.push({
@@ -134,6 +139,6 @@ export function emptyPlanMessage(plan: RoutePlan): string | null {
 // A soft note when some (but not all) needs didn't fit, or null.
 export function skippedNote(plan: RoutePlan): string | null {
   if (plan.stops.length === 0 || plan.skipped.length === 0) return null;
-  const names = plan.skipped.map((s) => NEED_LABEL[s.need].toLowerCase()).join(", ");
+  const names = plan.skipped.map((s) => s.name ?? NEED_LABEL[s.need].toLowerCase()).join(", ");
   return `Couldn't fit: ${names}. Try another time.`;
 }

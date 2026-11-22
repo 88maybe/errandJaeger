@@ -102,3 +102,97 @@ console.log(`Orange Back Bay -> Park Street: ${orangeThenGreen?.rides.map((r) =>
 const orangePlan = planRoute({ needs: ["snack", "grocery"], startTime: twoPm, loop: false, start: { name: "Boston Common", lat: 42.355, lng: -71.0656 } }, PLACES);
 const usedOrange = orangePlan.legs.some((l) => l.type === "transit" && l.lineLabel === "Orange Line");
 console.log(`Orange plan check: ${usedOrange ? "OK, a plan rides the Orange Line" : "PROBLEM, no Orange leg"}`);
+
+// ---- Map search: OpenStreetMap opening hours, and planning a hitlist ----
+import { parseOsmHours } from "../nearby/hours";
+import { toPlace } from "../nearby/client";
+import { planHitlist } from "./index";
+const hourCases: [string, string | null][] = [
+  ["24/7", '{"daily":"00:00-24:00"}'],
+  ["Mo-Fr 08:00-21:00; Sa 09:00-18:00; Su off", '{"mon":"08:00-21:00","tue":"08:00-21:00","wed":"08:00-21:00","thu":"08:00-21:00","fri":"08:00-21:00","sat":"09:00-18:00","sun":"closed"}'],
+  ["Mo-Su 07:00-22:00", null], // checked below: every day 07:00-22:00
+  ["Fr-Sa 18:00-02:00", null], // past midnight: Sat and Sun mornings get 00:00-02:00
+  ["Mo-Fr 09:00-17:00; PH off", null],
+  ["sunrise-sunset", "UNKNOWN"],
+  ["Jan-Mar Mo 10:00-12:00", "UNKNOWN"],
+];
+let hourProblems = 0;
+for (const [raw, want] of hourCases) {
+  const got = parseOsmHours(raw);
+  const text = got ? JSON.stringify(got) : "UNKNOWN";
+  if (want && text !== want) {
+    hourProblems++;
+    console.log(`  hours PROBLEM "${raw}" -> ${text}`);
+  } else console.log(`  hours "${raw}" -> ${text}`);
+}
+const late = parseOsmHours("Fr-Sa 18:00-02:00");
+if (late?.sat !== "00:00-02:00,18:00-24:00" || late?.sun !== "00:00-02:00") hourProblems++;
+console.log(`OSM hours check: ${hourProblems === 0 ? "OK" : `${hourProblems} PROBLEM(S)`}`);
+
+// A hitlist with a brand-new place (not in our list, no hours) far enough away to need a train.
+const hit = [
+  { id: "osm-node-1", name: "Test Pharmacy (Downtown Crossing)", kind: "pharmacy" as const, lat: 42.3555, lng: -71.0603, hours: null, hoursVerified: false, source: "osm" as const },
+  { id: "thinking-cup-newbury", name: "Thinking Cup (Newbury St)", kind: "coffee" as const, lat: 42.3514, lng: -71.0779, hours: { daily: "07:00-20:00" }, hoursVerified: false, source: "list" as const },
+].map(toPlace);
+console.log(`New place's nearest station (worked out from coordinates): ${hit[0].nearestStop}`);
+const hitPlan = planHitlist({ startTime: twoPm, loop: true, start: KENMORE }, hit);
+console.log(`Hitlist plan: ${hitPlan.stops.map((s) => `${s.place.name} (${s.need}, ${s.dwellMin} min)`).join(" -> ")}; rides: ${hitPlan.legs.filter((l) => l.type === "transit").length}`);
+for (const w of hitPlan.warnings) console.log(`  warning: ${w}`);
+const hitOk = hitPlan.stops.length === 2 && hitPlan.stops[0].place.id === "osm-node-1" && hitPlan.warnings.some((w) => w.includes("unknown"));
+console.log(`Hitlist check: ${hitOk ? "OK (kept order, planned the unknown-hours place, warned about it)" : "PROBLEM"}`);
+
+// ---- Red and Blue Lines ----
+const describe = (r: ReturnType<typeof findRoute>) =>
+  r
+    ? `${r.rides.map((x) => `${x.walkLinkFrom ? `[walk ${x.walkLinkFrom.name} -> ${x.from.name}] ` : ""}${x.line.name} ${x.from.name} -> ${x.to.name}, ${x.stops} stops toward ${x.toward.join("/")} (platform "${x.platform}")`).join(" | ")} = ${r.totalMin} min (estimate)`
+    : "no route";
+for (const [a, b] of [
+  ["place-sstat", "place-bucen"],
+  ["place-aqucl", "place-kencl"],
+  ["place-harsq", "place-bbsta"],
+]) {
+  for (const m of ["normal", "calm"] as const) console.log(`${m}: ${describe(findRoute(a, b, m))}`);
+}
+const ssBu = findRoute("place-sstat", "place-bucen", "normal");
+const ssBuOk =
+  ssBu?.rides.length === 2 &&
+  ssBu.rides[0].line.id === "red" &&
+  ssBu.rides[0].to.id === "place-pktrm" &&
+  ssBu.rides[1].line.id === "green-b" &&
+  ssBu.rides[1].changeFrom?.id === "place-pktrm" &&
+  ssBu.rides[1].toward.includes("Boston College");
+console.log(`South Station -> BU Central check: ${ssBuOk ? "OK (Red to Park Street, change, Green B toward Boston College)" : "PROBLEM"}`);
+
+// ---- Directions: transit options between two points, and the walk segments with MBTA entrance names ----
+import { findTransitOptions, summarize } from "../directions/options";
+import { segmentsOf } from "../directions/segments";
+const ssPoint = { name: "Dewey Square", lat: 42.3522, lng: -71.0565 };
+const buPoint = { name: "BU Central", lat: 42.3503, lng: -71.1067 };
+const opts = findTransitOptions(ssPoint, buPoint, twoPm);
+for (const o of opts) {
+  const s = summarize(o.plan);
+  console.log(`Option [${o.tags.join(", ")}]: ${o.changes} change(s), ${s.totalMin} min (estimate)`);
+  for (const seg of segmentsOf(o.plan, ssPoint, buPoint)) {
+    console.log(
+      seg.kind === "walk"
+        ? `   walk ${seg.leg.durationMin} min (${seg.role})${seg.entrance ? `, entrance: ${seg.entrance}` : ""}`
+        : `   ride ${seg.leg.lineLabel} ${seg.leg.boardAt} -> ${seg.leg.getOffAt} (${seg.stations.map((x) => x.name).join(", ")})`,
+    );
+  }
+}
+console.log(`Directions check: ${opts.length >= 1 && opts.length <= 2 ? "OK" : "PROBLEM"} (${opts.length} option(s))`);
+
+// ---- Brain dump: categories only, the user's own words only ----
+import { basicDump, validateDump } from "../ai/braindump";
+const dumpText = "pick up meds, need cash, milk and eggs, maybe a matcha after";
+const basic = basicDump(dumpText);
+const sneaky = validateDump(
+  { items: [{ kind: "pharmacy", words: "pick up meds" }, { kind: "museum", words: "visit the MFA at 3pm" }, { kind: "casino", words: "need cash" }, { kind: "pharmacy", words: "again" }] },
+  dumpText,
+);
+console.log(`Brain dump (simple matching): ${basic.map((d) => `${d.kind} "${d.words}"`).join(", ")}`);
+console.log(`Brain dump (checked AI answer): ${sneaky.map((d) => `${d.kind} "${d.words}"`).join(", ")}`);
+const dumpOk =
+  basic.map((d) => d.kind).join() === "pharmacy,bank,groceries,boba" &&
+  sneaky.length === 2 && sneaky[0].words === "pick up meds" && sneaky[1].kind === "museum" && sneaky[1].words === "";
+console.log(`Brain dump check: ${dumpOk ? "OK (unknown categories dropped, invented words removed)" : "PROBLEM"}`);
