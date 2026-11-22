@@ -66,7 +66,7 @@ M5 polish, README, demo script.
 Cut order if short: domain, Tiger Data, alerts banner, surprise square. Never cut M1, M3a, or the last-ride warning.
 
 ## Status (user ticks)
-[x] M0  [x] M1  [x] M2  [ ] M3a  [ ] M3b  [ ] M4  [ ] M5
+[x] M0  [x] M1  [x] M2  [x] M3a  [ ] M3b  [ ] M4  [ ] M5
 
-Notes: M2's calm mode currently means shorter walks plus one-step view; "fewer transfers, off-peak" needs transit (M3a).
+Notes: M3a done with a hand-built Green + Orange map (estimates only, no live times, no last-ride warning yet). Calm mode = shorter walks, fewest changes, one-step view.
 Places hours are from memory (see data/places.json _note); spot-check before the demo.

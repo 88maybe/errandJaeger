@@ -42,7 +42,7 @@ export function computeStats(history: Outing[], now: Date = new Date()): Stats {
       (sum, o) => sum + o.ticked.filter((i) => o.card[i]?.kind === "stop").length,
       0,
     ),
-    minutesWalked: finished.reduce((sum, o) => sum + o.plan.legs.reduce((m, leg) => m + leg.durationMin, 0), 0),
+    minutesWalked: finished.reduce((sum, o) => sum + o.plan.legs.reduce((m, leg) => (leg.type === "walk" ? m + leg.durationMin : m), 0), 0),
     streak: computeStreak(finished.map((o) => new Date(o.finishedAt as string)), now),
   };
 }

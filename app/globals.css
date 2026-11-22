@@ -411,6 +411,23 @@ p {
   border-color: var(--teal);
 }
 
+.rail-item.transit::before {
+  background: var(--gold);
+  border-color: var(--clay);
+}
+
+.rail-facts {
+  list-style: none;
+  margin: var(--s1) 0 0;
+  padding: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.rail-facts li {
+  padding: 2px 0;
+}
+
 .rail-time {
   font-size: var(--text-sm);
   font-weight: 700;
@@ -456,6 +473,11 @@ p {
 .step-card.stop {
   border-color: var(--teal);
   background: var(--sage);
+}
+
+.step-card.transit {
+  border-color: var(--clay);
+  background: #fff3d6;
 }
 
 .step-time {

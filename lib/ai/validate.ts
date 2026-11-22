@@ -12,7 +12,13 @@ export type ParsedRequest = {
   calm: boolean | null;
 };
 
-export type StepFacts = { index: number; kind: "walk" | "stop"; place: string; text: string };
+export type StepFacts = {
+  index: number;
+  kind: "walk" | "stop" | "transit";
+  place: string;
+  text: string;
+  keep?: string[]; // transit facts (platform, terminals...) the reworded step must still contain
+};
 
 const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 
@@ -64,8 +70,10 @@ export function validateActions(raw: unknown, items: StepFacts[]): Record<number
     if (!isObject(entry) || typeof entry.index !== "number" || typeof entry.action !== "string") continue;
     const item = items.find((i) => i.index === entry.index);
     const action = entry.action.trim();
-    if (!item || action.length < 4 || action.length > 160) continue;
+    if (!item || action.length < 4 || action.length > 200) continue;
     if (!includesName(action, item.place)) continue;
+    if (item.keep && !item.keep.every((k) => (/^\d+$/.test(k) ? new RegExp(`\\b${k}\\b`).test(action) : includesName(action, k)))) continue; // dropped a transit fact
+    if (/estimate/i.test(item.text) && !/estimate/i.test(action)) continue; // time estimates must stay labelled
     const knownNumbers = new Set(numbersIn(item.text));
     if (numbersIn(action).some((n) => !knownNumbers.has(n))) continue; // invented a time or number
     const knownDirections = new Set(compassIn(item.text));

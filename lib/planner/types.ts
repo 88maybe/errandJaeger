@@ -32,14 +32,32 @@ export type PlanInput = {
   start?: Point; // defaults to Kenmore Square
 };
 
-export type Leg = {
-  type: "walk"; // "transit" legs arrive in M3a
+type LegBase = {
   from: string;
   to: string;
   startTime: string; // ISO time
   durationMin: number; // ESTIMATE
-  instruction: string;
+  instruction: string; // the full plain-words text for this leg
 };
+
+export type WalkLeg = LegBase & { type: "walk" };
+
+// One ride on one line. Every fact here comes from the hand-built map in lib/transit (never from AI).
+export type TransitLeg = LegBase & {
+  type: "transit";
+  lineLabel: string; // e.g. "Green Line" or "Orange Line"
+  boardAt: string; // station you board at
+  platform: string; // MBTA platform name
+  toward: string[]; // terminal(s) to look for
+  stops: number;
+  getOffAt: string; // station
+  waitMin: number; // ESTIMATE
+  rideMin: number; // ESTIMATE
+  transferNote: string | null; // set when this ride starts with a change of lines
+  lines: string[]; // the same facts as short sentences (for the screens)
+};
+
+export type Leg = WalkLeg | TransitLeg;
 
 export type Stop = {
   need: Need;

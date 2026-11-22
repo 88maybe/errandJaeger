@@ -31,12 +31,23 @@ export default function Timeline({ plan }: { plan: RoutePlan }) {
               {formatNY(item.startTime)} to {formatNY(item.endTime)}
             </div>
             <strong>{item.title}</strong>
-            <span>{item.detail}</span>
+            {item.lines ? (
+              <ul className="rail-facts">
+                {item.lines.map((line, j) => (
+                  <li key={j}>{line}</li>
+                ))}
+              </ul>
+            ) : (
+              <span>{item.detail}</span>
+            )}
           </li>
         ))}
       </ol>
 
       {note && <p className="notice">{note}</p>}
+      {items.some((i) => i.kind === "transit") && (
+        <p className="soft">Train times are estimates. Live train times are not used yet, so check the MBTA before you go.</p>
+      )}
       <p className="soft">Hours may vary, check before you go.</p>
     </section>
   );

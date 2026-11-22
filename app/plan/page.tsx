@@ -7,7 +7,7 @@ import Timeline from "@/components/Timeline";
 import { aiActions } from "@/lib/ai/client";
 import { shortName } from "@/lib/bingo";
 import { formatNY } from "@/lib/planner/time";
-import { buildTimeline } from "@/lib/planner/timeline";
+import { buildSteps } from "@/lib/planner/timeline";
 import { useOuting } from "@/lib/useOuting";
 
 export default function PlanPage() {
@@ -21,12 +21,13 @@ export default function PlanPage() {
   useEffect(() => {
     if (!loaded || !outing || outing.mode !== "calm" || outing.ai?.steps || tried.current) return;
     tried.current = true;
-    const items = buildTimeline(outing.plan).map((item, index) => ({
+    const items = buildSteps(outing.plan).map((item, index) => ({
       index,
       kind: item.kind,
       place: shortName(item.place),
       // Everything the AI is allowed to use: the planner's own words and times.
       text: `${item.title}. ${item.detail} ${formatNY(item.startTime)} to ${formatNY(item.endTime)}.`,
+      keep: item.keep,
     }));
     setSimplifying(true);
     aiActions(items).then((actions) => {

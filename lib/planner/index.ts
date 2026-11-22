@@ -2,22 +2,107 @@
 import { compassDirection, walkMinutes } from "./geo";
 import { KENMORE } from "./places";
 import { addMinutes, isOpenFor } from "./time";
-import type { Leg, Need, Place, PlanInput, RoutePlan, Stop } from "./types";
+import { findRoute, lineLabel, nearestStation, rideLines, transferNote } from "../transit";
+import type { Leg, Need, Place, PlanInput, Point, RoutePlan, Stop } from "./types";
 
 // ESTIMATES of how long you spend at each kind of stop, in minutes.
 const DWELL_MIN: Record<string, number> = { grocery: 20, snack: 15, activity: 40 };
 
-// Longest single walk we allow until transit arrives in M3a.
+// Longest single walk we allow (also the longest walk to or from a station).
 const MAX_WALK_NORMAL = 25;
 const MAX_WALK_CALM = 15; // calmer = shorter walks
+
+// A walk longer than this (minutes, estimate) is replaced by transit when transit is quicker.
+const TRANSIT_ABOVE_WALK_MIN = 12;
+// Calmer mode takes transit for a long walk even if it is a little slower (up to this many minutes).
+const CALM_TRANSIT_SLACK_MIN = 5;
 
 // Does this place satisfy this need? "favorite" matches the tag, others match the category.
 function matches(place: Place, need: Need): boolean {
   return need === "favorite" ? place.tags.includes("favorite") : place.category === need;
 }
 
+// ---- Getting from one place to the next ----
+type Trip = { legs: Leg[]; minutes: number }; // minutes = the whole trip, waits included (ESTIMATE)
+
+function walkLeg(from: Point, to: Point, toName: string, clock: Date, minutes: number, suffix = ""): Leg {
+  return {
+    type: "walk",
+    from: from.name,
+    to: toName,
+    startTime: clock.toISOString(),
+    durationMin: minutes,
+    instruction: `Head ${compassDirection(from, to)}. About ${minutes} min walk${suffix} (estimate).`,
+  };
+}
+
+// The plain walk. Null if it is longer than we allow. No leg at all when you are already there.
+function walkTrip(from: Point, to: Point, clock: Date, maxWalk: number): Trip | null {
+  const minutes = walkMinutes(from, to);
+  if (minutes > maxWalk) return null;
+  return { legs: minutes > 0 ? [walkLeg(from, to, to.name, clock, minutes)] : [], minutes };
+}
+
+// Walk to the nearest station, ride, then walk to the destination. Null if that is not possible.
+function transitTrip(from: Point, to: Point, clock: Date, maxWalk: number, mode: "normal" | "calm"): Trip | null {
+  const board = nearestStation(from);
+  const alight = nearestStation(to);
+  if (board.id === alight.id) return null;
+  const walkIn = walkMinutes(from, board);
+  const walkOut = walkMinutes(alight, to);
+  if (walkIn > maxWalk || walkOut > maxWalk) return null;
+  const route = findRoute(board.id, alight.id, mode);
+  if (!route) return null;
+
+  const legs: Leg[] = [];
+  let t = clock;
+  if (walkIn > 0) {
+    legs.push(walkLeg(from, board, `${board.name} station`, t, walkIn));
+    t = addMinutes(t, walkIn);
+  }
+  for (const ride of route.rides) {
+    const duration = ride.waitMin + ride.rideMin;
+    const lines = rideLines(ride);
+    legs.push({
+      type: "transit",
+      from: ride.from.name,
+      to: ride.to.name,
+      startTime: t.toISOString(),
+      durationMin: duration,
+      instruction: lines.join(" "),
+      lineLabel: lineLabel(ride),
+      boardAt: ride.from.name,
+      platform: ride.platform,
+      toward: ride.toward,
+      stops: ride.stops,
+      getOffAt: ride.to.name,
+      waitMin: ride.waitMin,
+      rideMin: ride.rideMin,
+      transferNote: transferNote(ride),
+      lines,
+    });
+    t = addMinutes(t, duration);
+  }
+  if (walkOut > 0) legs.push(walkLeg(alight, to, to.name, t, walkOut, " from the station"));
+  return { legs, minutes: walkIn + route.totalMin + walkOut };
+}
+
+// Pick walking or transit for one trip.
+// Walks of 12 minutes or less stay walks. Longer walks use transit when it is quicker
+// (calmer mode: also when it is up to 5 minutes slower, to keep the walking short).
+function chooseTrip(from: Point, to: Point, clock: Date, maxWalk: number, mode: "normal" | "calm"): Trip | null {
+  const walk = walkTrip(from, to, clock, maxWalk);
+  if (walk && walkMinutes(from, to) <= TRANSIT_ABOVE_WALK_MIN) return walk;
+  const transit = transitTrip(from, to, clock, maxWalk, mode);
+  if (!transit) return walk;
+  if (!walk) return transit;
+  const slack = mode === "calm" ? CALM_TRANSIT_SLACK_MIN : 0;
+  return transit.minutes <= walk.minutes + slack && (mode === "calm" || transit.minutes < walk.minutes) ? transit : walk;
+}
+
 export function planRoute(input: PlanInput, places: Place[]): RoutePlan {
   const start = input.start ?? KENMORE;
+  const mode = input.mode ?? "normal";
   const maxWalk = input.mode === "calm" ? MAX_WALK_CALM : MAX_WALK_NORMAL;
 
   let here = { name: start.name, lat: start.lat, lng: start.lng };
@@ -30,36 +115,26 @@ export function planRoute(input: PlanInput, places: Place[]): RoutePlan {
 
   // Keep picking the NEAREST open place that fits any remaining need.
   while (remaining.length > 0) {
-    let best: { need: Need; place: Place; walk: number; arrive: Date; dwell: number } | null = null;
+    let best: { need: Need; place: Place; trip: Trip; arrive: Date; dwell: number } | null = null;
 
     for (const need of remaining) {
       for (const place of places) {
         if (used.has(place.id) || !matches(place, need)) continue;
 
-        const walk = walkMinutes(here, place);
-        if (walk > maxWalk) continue; // too far from the previous stop
+        const trip = chooseTrip(here, place, clock, maxWalk, mode);
+        if (!trip) continue; // can't get there sensibly
 
-        const arrive = addMinutes(clock, walk);
+        const arrive = addMinutes(clock, trip.minutes);
         const dwell = DWELL_MIN[place.category];
         if (!isOpenFor(place.hours, arrive, dwell)) continue; // closed (Boston time)
 
-        if (!best || walk < best.walk) best = { need, place, walk, arrive, dwell };
+        if (!best || trip.minutes < best.trip.minutes) best = { need, place, trip, arrive, dwell };
       }
     }
 
     if (!best) break; // nothing left is reachable and open
 
-    // A walk of 0 minutes means you are already there, so no walking leg is needed.
-    if (best.walk > 0) {
-      legs.push({
-        type: "walk",
-        from: here.name,
-        to: best.place.name,
-        startTime: clock.toISOString(),
-        durationMin: best.walk,
-        instruction: `Head ${compassDirection(here, best.place)}. About ${best.walk} min walk (estimate).`,
-      });
-    }
+    legs.push(...best.trip.legs); // walk, or walk + ride(s) + walk
     const leaveAt = addMinutes(best.arrive, best.dwell);
     stops.push({
       need: best.need,
@@ -78,27 +153,25 @@ export function planRoute(input: PlanInput, places: Place[]): RoutePlan {
   // Anything still in "remaining" could not be fitted in.
   const skipped = remaining.map((need) => ({
     need,
-    reason: `Nothing open within a ${maxWalk}-minute walk of the previous stop at that time.`,
+    reason: "Nothing open and reachable from the previous stop at that time.",
   }));
 
   // Walk back to the start if the user wants a loop.
   const warnings: string[] = [];
   let backBy: string | null = null;
   if (input.loop && stops.length > 0) {
-    const back = walkMinutes(here, start);
-    legs.push({
-      type: "walk",
-      from: here.name,
-      to: start.name,
-      startTime: clock.toISOString(),
-      durationMin: back,
-      instruction: `Head ${compassDirection(here, start)}. About ${back} min walk back (estimate).`,
-    });
-    clock = addMinutes(clock, back);
-    backBy = clock.toISOString();
-    if (back > maxWalk) {
-      warnings.push(`The walk back is about ${back} min. Transit for the way home arrives in a later step.`);
+    const trip = chooseTrip(here, start, clock, maxWalk, mode);
+    if (trip) {
+      legs.push(...trip.legs);
+      clock = addMinutes(clock, trip.minutes);
+    } else {
+      // No good way back: show the walk anyway and say so.
+      const back = walkMinutes(here, start);
+      legs.push(walkLeg(here, start, start.name, clock, back, " back"));
+      clock = addMinutes(clock, back);
+      warnings.push(`The walk back is about ${back} min (estimate), longer than we like.`);
     }
+    backBy = clock.toISOString();
   }
 
   for (const s of stops) {

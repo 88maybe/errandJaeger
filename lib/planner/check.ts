@@ -11,7 +11,11 @@ function show(title: string, input: PlanInput) {
   console.log(`Needs: ${input.needs.join(", ")} | mode: ${input.mode ?? "normal"} | loop: ${input.loop}`);
   console.log(`Leave by ${formatNY(plan.leaveBy)}${plan.backBy ? `, back by ${formatNY(plan.backBy)}` : `, done about ${formatNY(plan.endTime)}`} (${plan.totalMin} min total, estimate)`);
   for (const leg of plan.legs) {
-    console.log(`  ${formatNY(leg.startTime)}  walk ${leg.durationMin} min  ${leg.from} -> ${leg.to}  [${leg.instruction}]`);
+    if (leg.type === "transit") {
+      console.log(`  ${formatNY(leg.startTime)}  RIDE ${leg.durationMin} min (est)  ${leg.from} -> ${leg.to}  [${leg.instruction}]`);
+    } else {
+      console.log(`  ${formatNY(leg.startTime)}  walk ${leg.durationMin} min  ${leg.from} -> ${leg.to}  [${leg.instruction}]`);
+    }
   }
   for (const s of plan.stops) {
     console.log(`  ${formatNY(s.arriveAt)}-${formatNY(s.leaveAt)}  STOP (${s.need}): ${s.place.name}`);
@@ -35,5 +39,18 @@ show("Downtown start (Boston Common), no loop", {
   startTime: twoPm,
   loop: false,
   start: { name: "Boston Common", lat: 42.355, lng: -71.0656 },
+});
+show("Boston Common, snack + activity, loop back", {
+  needs: ["activity", "snack"],
+  startTime: twoPm,
+  loop: true,
+  start: { name: "Boston Common", lat: 42.355, lng: -71.0656 },
+});
+show("Kenmore start, calm, loop (short walks)", {
+  needs: ["grocery", "activity"],
+  startTime: twoPm,
+  loop: true,
+  mode: "calm",
+  start: KENMORE,
 });
 console.log(`\nPlaces loaded: ${PLACES.length}. Default start: ${KENMORE.name}.`);

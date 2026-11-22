@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { formatNY } from "@/lib/planner/time";
-import { buildTimeline } from "@/lib/planner/timeline";
+import { buildSteps } from "@/lib/planner/timeline";
 import type { RoutePlan } from "@/lib/planner/types";
 
-type Step = { kind: "start" | "walk" | "stop" | "end"; title: string; detail: string; time?: string };
+type Step = { kind: "start" | "walk" | "stop" | "transit" | "end"; title: string; detail: string; time?: string };
 
 // One big step at a time, with Back and Next.
 export default function StepView({
@@ -14,12 +14,12 @@ export default function StepView({
 }: {
   plan: RoutePlan;
   step: number;
-  actions?: string[]; // AI one-action wording per timeline item (empty string = use the standard text)
+  actions?: string[]; // AI one-action wording per step (empty string = use the standard text)
   onStep: (n: number) => void;
 }) {
   const steps: Step[] = [
     { kind: "start", title: `Start from ${plan.start.name}`, detail: `Leave at ${formatNY(plan.leaveBy)}.` },
-    ...buildTimeline(plan).map((item, i) => ({
+    ...buildSteps(plan).map((item, i) => ({
       kind: item.kind,
       title: item.title,
       detail: actions?.[i] || item.detail, // simple action if we have one, else the standard text
