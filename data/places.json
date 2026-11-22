@@ -72,20 +72,6 @@
       "hoursVerified": false
     },
     {
-      "id": "pavement-coffeehouse",
-      "name": "Pavement Coffeehouse (Boylston St)",
-      "category": "snack",
-      "tags": ["favorite"],
-      "area": "fenway",
-      "lat": 42.3471,
-      "lng": -71.0905,
-      "nearestStop": "Hynes Convention Center",
-      "hours": { "daily": "07:00-19:00" },
-      "priceLevel": 1,
-      "busyTimes": { "morning": "busy", "midday": "medium", "afternoon": "medium", "evening": "quiet" },
-      "hoursVerified": false
-    },
-    {
       "id": "thinking-cup-newbury",
       "name": "Thinking Cup (Newbury St)",
       "category": "snack",
@@ -111,20 +97,6 @@
       "hours": { "weekdays": "07:00-19:00", "weekend": "08:00-17:00" },
       "priceLevel": 2,
       "busyTimes": { "morning": "busy", "midday": "busy", "afternoon": "medium", "evening": "quiet" },
-      "hoursVerified": false
-    },
-    {
-      "id": "tasty-burger-fenway",
-      "name": "Tasty Burger (Boylston St, Fenway)",
-      "category": "snack",
-      "tags": [],
-      "area": "fenway",
-      "lat": 42.3448,
-      "lng": -71.0968,
-      "nearestStop": "Fenway",
-      "hours": { "daily": "11:00-23:00" },
-      "priceLevel": 1,
-      "busyTimes": { "morning": "quiet", "midday": "medium", "afternoon": "medium", "evening": "busy" },
       "hoursVerified": false
     },
     {
@@ -304,10 +276,10 @@
       "lat": 42.3445,
       "lng": -71.0861,
       "nearestStop": "Symphony",
-      "hours": { "mon": "closed", "tue": "10:00-16:00", "wed": "10:00-16:00", "thu": "10:00-16:00", "fri": "10:00-16:00", "sat": "10:00-16:00", "sun": "10:00-16:00" },
+      "hours": { "daily": "10:00-16:00" },
       "priceLevel": 2,
       "busyTimes": { "morning": "quiet", "midday": "medium", "afternoon": "medium", "evening": "quiet" },
-      "hoursVerified": false
+      "hoursVerified": true
     },
     {
       "id": "newbury-street-stroll",
@@ -321,20 +293,6 @@
       "hours": { "daily": "10:00-19:00" },
       "priceLevel": 0,
       "busyTimes": { "morning": "quiet", "midday": "medium", "afternoon": "busy", "evening": "medium" },
-      "hoursVerified": false
-    },
-    {
-      "id": "barnes-noble-bu",
-      "name": "Barnes & Noble at BU (Kenmore Sq)",
-      "category": "activity",
-      "tags": [],
-      "area": "kenmore",
-      "lat": 42.3489,
-      "lng": -71.0958,
-      "nearestStop": "Kenmore",
-      "hours": { "daily": "10:00-19:00" },
-      "priceLevel": 1,
-      "busyTimes": { "morning": "quiet", "midday": "medium", "afternoon": "medium", "evening": "quiet" },
       "hoursVerified": false
     },
     {

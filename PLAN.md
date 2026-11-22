@@ -33,6 +33,11 @@ RoutePlan legs: {type: walk|transit, from, to, startTime, durationMin, instructi
 - transit: line, board at (stop + platform if data exists), direction as terminal ("toward Alewife"), departure time (live if available), get-off stop, transfer note
 Show one-screen overview (all legs, leave by, back by) AND a one-step-at-a-time view.
 
+## Later (after core works)
+- Start point: use my location; address search; message when outside the launch area.
+- Bigger places list; live place lookup.
+- "New route" as an optional extra leg.
+
 ## Route data (decide at M3 spike, 30-min timebox)
 Option A: Google Directions API (transit + walking) if a Maps key exists.
 Option B: MBTA V3 stops/routes/predictions + small hand-built station graph for the launch area + a free foot-routing service for walking steps.
