@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import MapView, { type MapPoint, type RouteLine } from "@/components/MapView";
 import OptionsView, { type Tab } from "@/components/go/OptionsView";
 import RouteView from "@/components/go/RouteView";
+import WalkFlow, { type FlowLeg } from "@/components/go/WalkFlow";
 import type { Dep, ViewOption } from "@/components/go/types";
 import { findTransitOptions, miniPlan, nextTrips, summarize } from "@/lib/directions/options";
 import { fetchOsrm } from "@/lib/directions/osrm";
@@ -61,6 +62,9 @@ export default function GoPage() {
   const [carRoute, setCarRoute] = useState<OsrmRoute | null | undefined>(undefined);
   const [segWalks, setSegWalks] = useState<Record<string, OsrmRoute | null>>({});
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [showMap, setShowMap] = useState(true); // the map is on by default; you can hide it
+  const [flowWalks, setFlowWalks] = useState<Record<string, OsrmRoute | null>>({}); // walking flow: OSRM per stop-to-stop walk
+  const askedFlow = useRef(new Set<string>());
 
   // Clock, motion setting, and (if you turned it on earlier in this tab) your location.
   useEffect(() => {
@@ -205,7 +209,7 @@ export default function GoPage() {
       });
       const plan = applyTrainData({ ...o.plan, legs }, data);
       const first = transitLegs(plan)[0];
-      const scheduled = first ? nextTrips(first, data?.departures?.[legKey(first)]) : [];
+      const scheduled = first ? nextTrips(first, data?.departures?.[legKey(first)], 6) : [];
       const preds = first ? live?.predictions[liveKey(first)] : undefined;
       let deps: Dep[] = scheduled.map((t) => {
         const p = preds?.find((x) => x.trip === t.trip && x.dep);
@@ -216,7 +220,7 @@ export default function GoPage() {
         const reach = new Date(first.startTime).getTime();
         deps = preds
           .filter((p) => p.dep && new Date(p.dep).getTime() >= reach)
-          .slice(0, 2)
+          .slice(0, 6)
           .map((p) => ({ time: p.dep as string, basis: "live", note: p.status }));
       }
       return {
@@ -261,6 +265,35 @@ export default function GoPage() {
   if (chosen) lastChosen.current = chosen;
   const shown = chosenKey ? (chosen ?? lastChosen.current) : null;
 
+  // Walking: one continuous flow through every remaining stop (from here to this stop, then stop to stop).
+  const walkAll = shown?.mode === "walk";
+  const flowPairs = useMemo(() => {
+    if (!origin || index === null) return [];
+    const pts: Point[] = [origin, ...stops.slice(index).map((s) => ({ name: s.place.name, lat: s.place.lat, lng: s.place.lng }))];
+    return pts.slice(1).map((to, i) => ({ from: pts[i], to, key: `${pts[i].lat.toFixed(4)},${pts[i].lng.toFixed(4)}>${to.lat},${to.lng}` }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripKey, index, stops.length]);
+  useEffect(() => {
+    if (!walkAll) return;
+    flowPairs.forEach((p, i) => {
+      if (i === 0 || askedFlow.current.has(p.key)) return; // the first walk is the Walk tab's own route
+      askedFlow.current.add(p.key);
+      fetchOsrm("foot", p.from, p.to).then((r) => setFlowWalks((w) => ({ ...w, [p.key]: r })));
+    });
+  }, [walkAll, flowPairs]);
+  const flowLegs: FlowLeg[] = flowPairs.map((p, i) => {
+    const route = i === 0 ? walkRoute : p.key in flowWalks ? flowWalks[p.key] : undefined;
+    return { from: p.from, to: p.to, route, minutes: route?.durationMin ?? walkMinutes(p.from, p.to) };
+  });
+
+  // The compact Transit / Walk / Car switcher, once a route is open.
+  const switchTo = (m: "transit" | "walk" | "car") => {
+    const key = m === "transit" ? transit[0]?.key : m;
+    if (!key) return;
+    setTab(m);
+    setChosenKey(key);
+  };
+
   // The walk for a segment: the shared OSRM result (the plain walk option reuses the Walk tab's route).
   const walkFor = (s: Segment) => (s.kind !== "walk" ? undefined : s.role === "direct" ? walkRoute : segWalks[segKey(s)]);
   const segments: Segment[] = useMemo(
@@ -271,12 +304,20 @@ export default function GoPage() {
 
   // Map drawing for the chosen route.
   const map = useMemo(() => {
-    if (!shown || !origin || !dest) return null;
+    if (!origin || !dest) return null;
     const lines: RouteLine[] = [];
     const points: MapPoint[] = [
       { lat: origin.lat, lng: origin.lng, kind: "start", label: `Start: ${origin.name}` },
       { lat: dest.lat, lng: dest.lng, kind: "end", label: `Destination: ${dest.name}` },
     ];
+    if (!shown) return { lines, points, fit: points.map((p) => [p.lng, p.lat] as [number, number]) };
+    if (walkAll) {
+      flowLegs.forEach((l, i) => {
+        lines.push({ coords: [[l.from.lng, l.from.lat], ...(l.route?.geometry ?? []), [l.to.lng, l.to.lat]], colour: WALK_COLOUR[theme], dotted: true });
+        if (i > 0) points.push({ lat: l.to.lat, lng: l.to.lng, kind: "end", label: `Stop: ${l.to.name}` });
+      });
+      return { lines, points, fit: lines.flatMap((l) => l.coords) };
+    }
     if (shown.mode === "car") {
       lines.push({ coords: carRoute?.geometry ?? [[origin.lng, origin.lat], [dest.lng, dest.lat]], colour: CAR_COLOUR[theme], dotted: false });
     }
@@ -297,7 +338,7 @@ export default function GoPage() {
     const fit = lines.flatMap((l) => l.coords);
     return { lines, points, fit };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shown?.key, segments, segWalks, walkRoute, carRoute, tripKey, theme]);
+  }, [shown?.key, segments, segWalks, walkRoute, carRoute, tripKey, theme, walkAll, flowWalks]);
 
   // ---- Screens ----
   if (!loaded || (index === null && outing)) return <Skeleton rows={2} label="Loading" />;
@@ -318,11 +359,26 @@ export default function GoPage() {
   return (
     <main className="go">
       <header className="go-head">
-        <h1 className="page-title">To {stop.place.name}</h1>
-        <p className="soft">
-          From {origin.name}
-          {user ? " (live)" : ""}. Stop {index! + 1} of {stops.length}.
-        </p>
+        <h1 className="sr-only">Directions</h1>
+        <div className="leg-card">
+          <span className="stop-pill">
+            Stop {index! + 1} of {stops.length}
+          </span>
+          <div className="leg-end">
+            <small>From</small>
+            <strong>
+              {origin.name}
+              {user ? " (live)" : ""}
+            </strong>
+          </div>
+          <span className="leg-arrow" aria-hidden="true">
+            ↓
+          </span>
+          <div className="leg-end">
+            <small>To</small>
+            <strong>{stop.place.name}</strong>
+          </div>
+        </div>
         {stops.length > 1 && (
           <div className="go-stops">
             <button type="button" className="btn btn-secondary btn-small" disabled={index === 0} onClick={() => { setIndex(index! - 1); setChosenKey(null); }}>
@@ -335,25 +391,60 @@ export default function GoPage() {
         )}
       </header>
 
-      {shown && map ? (
+      {shown && (
+        <div className="mode-switch" role="group" aria-label="How to get there">
+          {([
+            ["transit", "Transit", transit[0] ? `${transit[0].summary.totalMin} min` : "–"],
+            ["walk", "Walk", walk ? `${walkAll ? flowLegs.reduce((n, l) => n + l.minutes, 0) : walk.summary.totalMin} min` : "…"],
+            ["car", "Car", car ? `${car.summary.totalMin} min` : carRoute === null ? "–" : "…"],
+          ] as const).map(([id, label, time]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={shown.mode === id}
+              disabled={id === "transit" ? !transit[0] : id === "walk" ? !walk : !car}
+              onClick={() => switchTo(id)}
+            >
+              {label} <strong>{time}</strong>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {map && (
         <>
-          <div className="map-wrap go-map">
-            <MapView
-              center={DOWNTOWN}
-              user={user}
-              results={[]}
-              radiusM={0}
-              stim={false}
-              reducedMotion={reducedMotion}
-              searchKey={0}
-              hitIds={[]}
-              favIds={[]}
-              onPick={() => {}}
-              routeLines={map.lines}
-              points={map.points}
-              fitTo={map.fit}
-            />
-          </div>
+          <button type="button" className="map-toggle" aria-expanded={showMap} aria-controls="go-map" onClick={() => setShowMap(!showMap)}>
+            <span className="map-icon" aria-hidden="true">
+              ▦
+            </span>
+            {showMap ? "Map · Hide" : "Show map"}
+          </button>
+          {showMap && (
+            <div className="map-wrap go-map" id="go-map">
+              <MapView
+                center={DOWNTOWN}
+                user={user}
+                results={[]}
+                radiusM={0}
+                stim={false}
+                reducedMotion={reducedMotion}
+                searchKey={0}
+                hitIds={[]}
+                favIds={[]}
+                onPick={() => {}}
+                routeLines={map.lines}
+                points={map.points}
+                fitTo={map.fit}
+              />
+            </div>
+          )}
+        </>
+      )}
+
+      {shown ? (
+        walkAll ? (
+          <WalkFlow legs={flowLegs} firstStop={index!} onBack={() => setChosenKey(null)} />
+        ) : (
           <RouteView
             option={shown}
             segments={segments}
@@ -362,7 +453,7 @@ export default function GoPage() {
             now={now}
             onBack={() => setChosenKey(null)}
           />
-        </>
+        )
       ) : (
         <OptionsView
           tab={tab}

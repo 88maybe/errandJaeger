@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BrainDump from "@/components/BrainDump";
 import { Skeleton, Banner, Spinner } from "@/components/Busy";
 import Dialog from "@/components/Dialog";
-import ThemeToggle from "@/components/ThemeToggle";
 import { useToast } from "@/components/Toast";
 import Hitlist from "@/components/Hitlist";
 import MapView from "@/components/MapView";
@@ -41,7 +40,7 @@ import {
   type Prefs,
 } from "@/lib/storage";
 
-// "Leave now": this moment, rounded down to the minute.
+// "Go now": this moment, rounded down to the minute.
 const startOfThisMinute = () => new Date(Math.floor(Date.now() / 60000) * 60000);
 
 const MAX_HITLIST = 8; // the bingo card has 8 squares
@@ -94,6 +93,7 @@ export default function Home() {
   const [radius, setRadius] = useState(DEFAULT_RADIUS);
   const [includeAddOns, setIncludeAddOns] = useState(true);
   const [kind, setKind] = useState<KindId | null>(null);
+  const [openGroup, setOpenGroup] = useState<(typeof GROUPS)[number]["id"] | null>(null); // the expanded chip group (one at a time)
   const [found, setFound] = useState<Found[]>([]);
   const [loading, setLoading] = useState(false);
   const [sheetNote, setSheetNote] = useState<{ text: string; tone: "info" | "warn" } | null>(null);
@@ -404,18 +404,10 @@ export default function Home() {
 
   const kindLabel = kind ? kindById(kind)?.label : "";
   const distLabel = radius < 1000 ? `${radius} m` : `${radius / 1000} km`;
-  const quickFavs = favorites.filter((f) => !hitIds.includes(f.id)).slice(0, 6);
+  const quickFavs = favorites.filter((f) => !hitIds.includes(f.id));
 
   return (
     <main className={`home ${kind ? "has-sheet" : ""}`}>
-      <header className="brand brand-compact brand-row">
-        <div>
-          <h1>errandJaeger</h1>
-          <p>Turn today&apos;s errands into a calmer bingo walk.</p>
-        </div>
-        <ThemeToggle compact />
-      </header>
-
       {current && !waiting && (
         <Link href="/plan" className="card resume">
           <strong>You have a plan in progress</strong>
@@ -441,10 +433,30 @@ export default function Home() {
       </Dialog>
 
       <div className={`map-wrap ${stim ? "is-lively" : "is-calm"}`}>
-        <div className="cat-chips" role="toolbar" aria-label="Search nearby">
-          {GROUPS.map((g) => (
-            <div key={g.id} className="cat-group" role="group" aria-label={g.label}>
-              <span className="cat-group-label">{g.label}</span>
+        <div className="cat-chips" aria-label="Search nearby" role="group">
+          <div className="cat-groups">
+            {GROUPS.map((g) => {
+              const isOpen = openGroup === g.id;
+              const hasPick = !!kind && kindById(kind)?.group === g.id;
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  className={`cat-chip cat-group-btn cat-${g.id} ${hasPick ? "has-pick" : ""}`}
+                  aria-expanded={isOpen}
+                  aria-controls={`cat-row-${g.id}`}
+                  onClick={() => setOpenGroup(isOpen ? null : g.id)}
+                >
+                  {g.label}
+                  <span className="caret" aria-hidden="true">
+                    {isOpen ? "▴" : "▾"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {GROUPS.filter((g) => g.id === openGroup).map((g) => (
+            <div key={g.id} id={`cat-row-${g.id}`} className={`cat-row ${reducedMotion ? "" : "cat-row-in"}`} role="group" aria-label={`${g.label} options`}>
               {KINDS.filter((k) => k.group === g.id).map((k) => (
                 <button
                   key={k.id}
@@ -494,6 +506,7 @@ export default function Home() {
           </button>
         </div>
       </div>
+      {hitlist.length === 0 && <p className="hint map-hint">Tap a place on the map or in the list to add it to your hitlist.</p>}
       {locNote && (
         <Banner
           tone="warn"
@@ -517,38 +530,31 @@ export default function Home() {
 
       <BrainDump onAddNearest={addNearest} onShow={(k) => search(k)} />
 
-      <label className="toggle stim-toggle">
-        <input
-          type="checkbox"
-          checked={stim}
-          onChange={(e) => {
-            setStim(e.target.checked);
-            applyStim(e.target.checked);
-            rememberSettings({ stim: e.target.checked });
-          }}
-        />
-        <span>
-          Stim mode {stim ? "on" : "off"}
-          <small>
-            {stim
-              ? "A livelier map, more places, side quests. Stops in the order you pick."
-              : "Fewer places and gentle fades. Errands first; add-ons are optional. Favorites come first."}
-          </small>
-        </span>
-      </label>
-
-      {quickFavs.length > 0 && (
-        <section className="favs" aria-label="Your favorites">
-          <h2>{stim ? "Your favorites" : "Familiar favorites"}</h2>
-          <div className="chips">
+      <section className="favs" aria-labelledby="favs-title">
+        <h2 id="favs-title">{stim ? "Your favorites" : "Familiar favorites"}</h2>
+        {favorites.length === 0 ? (
+          <p className="soft">Star places (☆ in the map results) to see them here.</p>
+        ) : quickFavs.length === 0 ? (
+          <p className="soft">All your starred places are already in your hitlist.</p>
+        ) : (
+          <select
+            className="fav-select"
+            aria-label="Add a starred place to your hitlist"
+            value=""
+            onChange={(e) => {
+              const f = favorites.find((x) => x.id === e.target.value);
+              if (f) toggleHit(f);
+            }}
+          >
+            <option value="">Add a starred place… ({quickFavs.length})</option>
             {quickFavs.map((f) => (
-              <button key={f.id} type="button" className="chip chip-small" onClick={() => toggleHit(f)}>
-                ★ {f.name}
-              </button>
+              <option key={f.id} value={f.id}>
+                ★ {f.name} · {kindById(f.kind)?.label ?? ""}
+              </option>
             ))}
-          </div>
-        </section>
-      )}
+          </select>
+        )}
+      </section>
 
       <Hitlist
         items={hitlist}
@@ -574,11 +580,35 @@ export default function Home() {
           hitlistCount={hitlist.length}
           busy={planBusy}
           busyText={checking ? "Checking train times…" : "Making your plan…"}
+          onClearHitlist={() => {
+            const before = hitlist;
+            updateHitlist([]);
+            toast({ kind: "info", text: "Cleared your hitlist.", next: "Pick by type below instead.", action: { label: "Undo", onClick: () => updateHitlist(before) } });
+          }}
         />
       ) : (
         <Skeleton rows={2} label="Loading" />
       )}
 
+      <div className="stim-row">
+        <label className="switch">
+          <input
+            type="checkbox"
+            role="switch"
+            checked={stim}
+            onChange={(e) => {
+              setStim(e.target.checked);
+              applyStim(e.target.checked);
+              rememberSettings({ stim: e.target.checked });
+            }}
+          />
+          <span className="switch-track" aria-hidden="true" />
+          <span className="switch-label">
+            Stim mode <strong>{stim ? "on" : "off"}</strong>
+          </span>
+        </label>
+        <small>{stim ? "Livelier map, more places, side quests, your order." : "Fewer places, gentle fades, errands first."}</small>
+      </div>
 
       {kind && now && (
         <NearbySheet
