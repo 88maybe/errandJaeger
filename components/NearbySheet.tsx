@@ -1,7 +1,8 @@
 "use client";
 
+import { Banner, Skeleton, Working } from "@/components/Busy";
 import { kindById } from "@/lib/nearby/categories";
-import { distanceText, isMission, openStatus, type Found } from "@/lib/nearby/client";
+import { distanceText, groupOf, isMission, openStatus, type Found } from "@/lib/nearby/client";
 
 type SideQuest = { place: Found } | null;
 
@@ -20,11 +21,14 @@ type Props = {
   onToggle: (p: Found) => void;
   onStar: (p: Found) => void;
   onClose: () => void;
+  noteTone?: "info" | "warn"; // warn = the search failed
+  onRetry?: () => void;
+  onWiden?: () => void; // search a bigger distance (absent when already at the biggest)
 };
 
 // The bottom sheet with the search results. Cards slide up one after another (Stim mode), or just fade in.
 export default function NearbySheet(props: Props) {
-  const { title, loading, note, results, hitIds, favIds, stim, reducedMotion, searchKey, sideQuest, now, onToggle, onStar, onClose } = props;
+  const { title, loading, note, results, hitIds, favIds, stim, reducedMotion, searchKey, sideQuest, now, onToggle, onStar, onClose, noteTone, onRetry, onWiden } = props;
   const anim = reducedMotion ? "" : stim ? "card-slide" : "card-fade";
 
   return (
@@ -38,12 +42,28 @@ export default function NearbySheet(props: Props) {
       </div>
 
       {loading && (
-        <p className="soft" role="status">
-          Looking nearby…
-        </p>
+        <>
+          <Working busy text="Looking nearby…" slowText="Still looking. The map servers can be slow; saved places are used if they don't answer." />
+          <Skeleton rows={3} label="Loading places" />
+        </>
       )}
-      {note && <p className="soft">{note}</p>}
-      {!loading && results.length === 0 && <p className="soft">Nothing found in this area. Try a bigger distance.</p>}
+      {!loading && note && (
+        <Banner tone={noteTone ?? "info"} action={onRetry ? { label: "Try again", onClick: onRetry } : undefined}>
+          {note}
+        </Banner>
+      )}
+      {!loading && results.length === 0 && noteTone !== "warn" && (
+        <div className="empty-state">
+          <p>Nothing found this close.</p>
+          {onWiden ? (
+            <button type="button" className="btn btn-secondary btn-small" onClick={onWiden}>
+              Look further away
+            </button>
+          ) : (
+            <p className="soft">Try another category, or pick a different start point.</p>
+          )}
+        </div>
+      )}
 
       {stim && sideQuest && !loading && (
         <div className={`side-quest ${anim}`}>
@@ -66,7 +86,7 @@ export default function NearbySheet(props: Props) {
           const added = hitIds.includes(p.id);
           const fav = favIds.includes(p.id);
           return (
-            <li key={p.id} className={`place-card ${anim}`} style={{ animationDelay: reducedMotion ? undefined : `${Math.min(i, 10) * (stim ? 60 : 30)}ms` }}>
+            <li key={p.id} className={`place-card place-${groupOf(p)} ${anim}`} style={{ animationDelay: reducedMotion ? undefined : `${Math.min(i, 10) * (stim ? 60 : 30)}ms` }}>
               <div className="place-main">
                 <strong>{p.name}</strong>
                 <span className="soft">

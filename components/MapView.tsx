@@ -4,13 +4,17 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";
 import type { Map as MlMap, Marker as MlMarker, StyleSpecification } from "maplibre-gl";
 import { groupOf, type Found } from "@/lib/nearby/client";
+import { useResolvedTheme } from "@/lib/useTheme";
 
 // The map. MapLibre with a free, no-key vector style (OpenFreeMap). If that style can't load, plain OSM tiles.
 // Stim mode on = a livelier, more colourful style and a pulsing ring; off = a calmer pale style and fades only.
 
-// Dark styles to match the app: plain dark when Stim mode is off, the more colourful "fiord" when it is on.
-const STYLE_CALM = "https://tiles.openfreemap.org/styles/dark";
-const STYLE_LIVELY = "https://tiles.openfreemap.org/styles/fiord";
+// Free, no-key OpenFreeMap styles that match the app theme. Stim mode off = calmer style, on = livelier style.
+const STYLES = {
+  light: { calm: "https://tiles.openfreemap.org/styles/positron", lively: "https://tiles.openfreemap.org/styles/liberty" },
+  dark: { calm: "https://tiles.openfreemap.org/styles/dark", lively: "https://tiles.openfreemap.org/styles/fiord" },
+};
+const styleFor = (theme: "light" | "dark", stim: boolean) => STYLES[theme][stim ? "lively" : "calm"];
 const RASTER: StyleSpecification = {
   version: 8,
   sources: {
@@ -78,6 +82,7 @@ const metresToPx = (r: number, lat: number, zoom: number) => r / ((40075016.686 
 export default function MapView(props: Props) {
   const { center, user, results, radiusM, stim, reducedMotion, searchKey, hitIds, favIds, onPick, routeLines, points, fitTo, extraBottomPx = 0 } = props;
   const pointMarkers = useRef<MlMarker[]>([]);
+  const theme = useResolvedTheme();
   const box = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
   const libRef = useRef<typeof import("maplibre-gl") | null>(null);
@@ -104,7 +109,7 @@ export default function MapView(props: Props) {
         libRef.current = ml;
         const map = new ml.Map({
           container: box.current,
-          style: stim ? STYLE_LIVELY : STYLE_CALM,
+          style: styleFor(document.documentElement.dataset.theme === "dark" ? "dark" : "light", stim),
           center: [center.lng, center.lat],
           zoom: 14,
           attributionControl: { compact: true, customAttribution: "© OpenStreetMap contributors" },
@@ -205,8 +210,8 @@ export default function MapView(props: Props) {
       return;
     }
     if (!mapRef.current || raster) return;
-    mapRef.current.setStyle(stim ? STYLE_LIVELY : STYLE_CALM);
-  }, [stim, raster]);
+    mapRef.current.setStyle(styleFor(theme, stim));
+  }, [stim, raster, theme]);
 
   // Directions mode: draw the route and keep it in view.
   const fitKey = fitTo ? JSON.stringify(fitTo) : "";

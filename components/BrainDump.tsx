@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Spinner, Working } from "@/components/Busy";
 import { aiBrainDump } from "@/lib/ai/client";
 import { basicDump, type DumpItem } from "@/lib/ai/braindump";
 import { kindById, type KindId } from "@/lib/nearby/categories";
@@ -17,28 +18,40 @@ export default function BrainDump({ onAddNearest, onShow }: Props) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [adding, setAdding] = useState<string | null>(null);
+  const chipsRef = useRef<HTMLUListElement>(null);
 
   async function sort() {
     if (!text.trim() || busy) return;
     setBusy(true);
     setNote(null);
     setNotes({});
-    const fromAi = await aiBrainDump(text);
+    const asked = Date.now();
+    const fromAi = navigator.onLine ? await aiBrainDump(text) : null;
+    const slow = !fromAi && Date.now() - asked > 7000;
     const list = fromAi && fromAi.length > 0 ? fromAi : basicDump(text);
     setBusy(false);
     setItems(list);
     setNote(
       list.length === 0
-        ? "I couldn't match anything to our categories. Try the chips on the map."
+        ? "I couldn't match anything to our categories (groceries, pharmacy, laundry, bank, coffee, boba, dessert, park, library, museum). Try the chips on the map."
         : fromAi && fromAi.length > 0
           ? "Here's what I found. Confirm the ones you want."
-          : "Sorted with simple matching. Confirm the ones you want.",
+          : !navigator.onLine
+            ? "You're offline, so I sorted it with simple matching. Confirm the ones you want."
+            : slow
+              ? "The AI helper took too long, so I sorted it with simple matching. Confirm the ones you want."
+              : "Sorted with simple matching. Confirm the ones you want.",
     );
+    // Bring the new chips into view.
+    requestAnimationFrame(() => chipsRef.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" }));
   }
 
   async function add(item: DumpItem) {
-    setNotes((n) => ({ ...n, [item.kind]: "Looking nearby…" }));
+    setAdding(item.kind);
+    setNotes((n) => ({ ...n, [item.kind]: "" }));
     const result = await onAddNearest(item.kind);
+    setAdding(null);
     setNotes((n) => ({ ...n, [item.kind]: result }));
   }
 
@@ -54,25 +67,43 @@ export default function BrainDump({ onAddNearest, onShow }: Props) {
         placeholder="e.g. pick up meds, need cash, milk and eggs, maybe a matcha after"
       />
       <button type="button" className="btn btn-secondary" onClick={sort} disabled={busy || !text.trim()}>
-        {busy ? "Sorting…" : "Sort it into chips"}
+        {busy ? (
+          <>
+            <Spinner /> Working…
+          </>
+        ) : (
+          "Sort it into chips"
+        )}
       </button>
+      {!text.trim() && <p className="why-disabled">Type your list above first.</p>}
+      <Working busy={busy} text="Sorting your list…" slowText="Still sorting. If the AI helper is slow, I'll use simple matching." />
       {note && (
         <p className="soft" role="status">
           {note}
         </p>
       )}
       {items.length > 0 && (
-        <ul className="dump-chips">
+        <ul className="dump-chips" ref={chipsRef}>
           {items.map((item) => (
             <li key={item.kind} className="dump-chip">
               <div className="dump-main">
                 <strong>{kindById(item.kind)?.label}</strong>
                 {item.words && <span className="soft">&ldquo;{item.words}&rdquo;</span>}
-                {notes[item.kind] && <span className="soft">{notes[item.kind]}</span>}
+                {adding === item.kind ? (
+                  <span className="soft">
+                    <Spinner /> Looking nearby…
+                  </span>
+                ) : (
+                  notes[item.kind] && (
+                    <span className="soft" role="status">
+                      {notes[item.kind]}
+                    </span>
+                  )
+                )}
               </div>
               <div className="dump-actions">
-                <button type="button" className="btn btn-primary btn-small" onClick={() => add(item)}>
-                  Add nearest
+                <button type="button" className="btn btn-primary btn-small" onClick={() => add(item)} disabled={adding !== null}>
+                  {adding === item.kind ? "Working…" : "Add nearest"}
                 </button>
                 <button type="button" className="btn btn-secondary btn-small" onClick={() => onShow(item.kind)}>
                   Choose

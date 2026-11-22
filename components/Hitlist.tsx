@@ -1,7 +1,7 @@
 "use client";
 
 import { kindById } from "@/lib/nearby/categories";
-import { isMission } from "@/lib/nearby/client";
+import { groupOf, isMission } from "@/lib/nearby/client";
 import type { HitItem } from "@/lib/storage";
 
 type Props = {
@@ -31,7 +31,7 @@ export default function Hitlist({ items, stim, includeAddOns, justAdded, reduced
       </p>
       <ol>
         {items.map((p, i) => (
-          <li key={p.id} className={`hit ${justAdded === p.id && !reducedMotion ? "hit-new" : ""}`}>
+          <li key={p.id} className={`hit hit-${groupOf(p)} ${justAdded === p.id && !reducedMotion ? "hit-new" : ""}`}>
             <span className={`hit-tag ${isMission(p) ? "tag-mission" : "tag-addon"}`}>{isMission(p) ? "Mission" : "Add-on"}</span>
             <span className="hit-name">
               {p.name}

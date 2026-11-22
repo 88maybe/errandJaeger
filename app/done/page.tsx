@@ -1,5 +1,6 @@
 "use client";
 
+import { Skeleton } from "@/components/Busy";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import RankCard from "@/components/RankCard";
@@ -21,7 +22,7 @@ export default function DonePage() {
     });
   }, []);
 
-  if (!loaded || !stats) return <p className="soft">Loading…</p>;
+  if (!loaded || !stats) return <Skeleton rows={2} label="Loading" />;
 
   if (!last) {
     return (

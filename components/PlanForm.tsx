@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Spinner, Working } from "@/components/Busy";
 import { aiParse } from "@/lib/ai/client";
 import { basicParse, hasAnything } from "@/lib/ai/fallback";
 import type { ParsedRequest } from "@/lib/ai/validate";
@@ -37,9 +38,11 @@ type Props = {
   onStart: (point: Point) => void;
   usingLocation: boolean;
   hitlistCount: number; // places picked on the map: when there are any, the plan visits those instead of "needs"
+  busy?: boolean; // making the plan right now
+  busyText?: string;
 };
 
-export default function PlanForm({ initial, onSubmit, start, onStart, usingLocation, hitlistCount }: Props) {
+export default function PlanForm({ initial, onSubmit, start, onStart, usingLocation, hitlistCount, busy = false, busyText = "Working…" }: Props) {
   // Start from what you chose last time.
   const [needs, setNeeds] = useState<Need[]>(initial.needs);
   const [startHHMM, setStartHHMM] = useState("");
@@ -77,7 +80,9 @@ export default function PlanForm({ initial, onSubmit, start, onStart, usingLocat
     setReadNote(null);
 
     // Try the AI first. If it is off, slow, or gives something unusable, use simple keyword matching instead.
+    const asked = Date.now();
     const fromAi = await aiParse(text);
+    const aiSlow = !fromAi && Date.now() - asked > 7000; // it gave up after waiting
     const parsed = fromAi && hasAnything(fromAi) ? fromAi : basicParse(text);
     setReading(false);
 
@@ -89,7 +94,9 @@ export default function PlanForm({ initial, onSubmit, start, onStart, usingLocat
     setReadNote(
       fromAi && hasAnything(fromAi)
         ? "I filled in the choices below. Please check them, then press Make my plan."
-        : "I filled in what I could with simple matching. Please check the choices below.",
+        : aiSlow
+          ? "The AI helper took too long, so I filled in what I could with simple matching. Please check the choices below."
+          : "I filled in what I could with simple matching. Please check the choices below.",
     );
   }
 
@@ -111,8 +118,16 @@ export default function PlanForm({ initial, onSubmit, start, onStart, usingLocat
           placeholder="For example: groceries and a coffee near Copley around 3pm, loop back, keep it calm"
         />
         <button type="button" className="btn btn-secondary tell-button" onClick={readRequest} disabled={reading || !text.trim()}>
-          {reading ? "Reading…" : "Fill in the choices for me"}
+          {reading ? (
+            <>
+              <Spinner /> Working…
+            </>
+          ) : (
+            "Fill in the choices for me"
+          )}
         </button>
+        {!text.trim() && !reading && <p className="why-disabled">Type something above first.</p>}
+        <Working busy={reading} text="Reading what you wrote…" slowText="Still reading. If the AI helper is slow, I'll use simple matching." />
         {readNote && (
           <p className="soft" role="status">
             {readNote}
@@ -137,11 +152,11 @@ export default function PlanForm({ initial, onSubmit, start, onStart, usingLocat
         </>
       )}
 
-      <h2>Where are you starting?</h2>
+      <h2 id="start-picker-title">Where are you starting?</h2>
       {usingLocation ? (
         <p className="soft">From your location (it stays on this phone).</p>
       ) : (
-        <div className="chips">
+        <div className="chips" id="start-picker" role="group" aria-labelledby="start-picker-title">
           {START_POINTS.map((point) => (
             <button key={point.name} type="button" className="chip" aria-pressed={start.name === point.name} onClick={() => onStart(point)}>
               {point.name}
@@ -173,18 +188,26 @@ export default function PlanForm({ initial, onSubmit, start, onStart, usingLocat
         </span>
       </label>
 
-      <button type="submit" className="btn btn-primary" disabled={!ready}>
-        Make my plan
+      <button type="submit" className="btn btn-primary" disabled={!ready || busy} aria-busy={busy}>
+        {busy ? (
+          <>
+            <Spinner /> Working…
+          </>
+        ) : (
+          "Make my plan"
+        )}
       </button>
       <button
         type="button"
         className="btn btn-secondary"
-        disabled={!hasSomething}
+        disabled={!hasSomething || busy}
         onClick={() => onSubmit({ needs, startHHMM, leaveNow: true, loop, calm, bingo, start })}
       >
         Leave now
       </button>
-      {!hasSomething && <p className="hint">Pick at least one thing above, or add places from the map.</p>}
+      {!hasSomething && <p className="why-disabled">Pick at least one thing above, or add places from the map, to make a plan.</p>}
+      {hasSomething && !startHHMM && <p className="why-disabled">Choose a start time, or press Leave now.</p>}
+      <Working busy={busy} text={busyText} slowText="Still working. Train times can take a few seconds." />
     </form>
   );
 }

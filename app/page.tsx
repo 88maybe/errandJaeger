@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BrainDump from "@/components/BrainDump";
+import { Skeleton, Banner, Spinner } from "@/components/Busy";
+import Dialog from "@/components/Dialog";
+import ThemeToggle from "@/components/ThemeToggle";
+import { useToast } from "@/components/Toast";
 import Hitlist from "@/components/Hitlist";
 import MapView from "@/components/MapView";
 import NearbySheet from "@/components/NearbySheet";
@@ -67,10 +71,11 @@ function localFallback(kind: KindId): NearbyPlace[] {
 
 export default function Home() {
   const router = useRouter();
+  const toast = useToast();
   const reducedMotion = useReducedMotion();
+  const [planBusy, setPlanBusy] = useState(false); // making a plan (and checking train times)
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [current, setCurrent] = useState<Outing | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [checking, setChecking] = useState(false); // looking up real train times
   // A finished new plan waiting for you to say "replace my current one".
   const [waiting, setWaiting] = useState<{ plan: RoutePlan; mode: "normal" | "calm"; train?: Departures; leftNow?: boolean; directions?: boolean; bingo?: boolean } | null>(null);
@@ -79,7 +84,8 @@ export default function Home() {
   const [start, setStart] = useState<Point>(DOWNTOWN);
   const [user, setUser] = useState<LatLng | null>(null);
   const [locating, setLocating] = useState(false);
-  const [locNote, setLocNote] = useState<string | null>(null);
+  // A location problem, shown right under the location button, with the next thing to do.
+  const [locNote, setLocNote] = useState<{ text: string; action: "retry" | "pick" } | null>(null);
   const watchId = useRef<number | null>(null);
   const [mapCenter, setMapCenter] = useState<LatLng>(DOWNTOWN);
 
@@ -90,7 +96,8 @@ export default function Home() {
   const [kind, setKind] = useState<KindId | null>(null);
   const [found, setFound] = useState<Found[]>([]);
   const [loading, setLoading] = useState(false);
-  const [sheetNote, setSheetNote] = useState<string | null>(null);
+  const [sheetNote, setSheetNote] = useState<{ text: string; tone: "info" | "warn" } | null>(null);
+  const searchSeq = useRef(0); // only the latest search may fill the sheet
   const [searchKey, setSearchKey] = useState(0);
   const [now, setNow] = useState<Date | null>(null);
 
@@ -99,7 +106,6 @@ export default function Home() {
   const [favorites, setFavorites] = useState<NearbyPlace[]>([]);
   const [visited, setVisited] = useState<Set<string>>(new Set());
   const [justAdded, setJustAdded] = useState<string | null>(null);
-  const [trayNote, setTrayNote] = useState<string | null>(null);
 
   // Load what we remembered: your last choices, any plan in progress, hitlist and favorites.
   useEffect(() => {
@@ -142,7 +148,7 @@ export default function Home() {
   );
 
   // ---- Location ----
-  function stopLocation(note: string | null = null) {
+  function stopLocation(note: { text: string; action: "retry" | "pick" } | null = null) {
     if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
     watchId.current = null;
     setLocationOn(false);
@@ -153,7 +159,7 @@ export default function Home() {
 
   function locate() {
     if (!("geolocation" in navigator)) {
-      setLocNote("This browser can't share your location. Pick a start point below instead.");
+      setLocNote({ text: "This browser can't share your location.", action: "pick" });
       return;
     }
     setLocating(true);
@@ -163,7 +169,7 @@ export default function Home() {
       (pos) => {
         const here = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         if (!inArea(here)) {
-          stopLocation("errandJaeger only works around Greater Boston for now, so here is downtown Boston. Pick a start point below.");
+          stopLocation({ text: "You seem to be outside Greater Boston, where errandJaeger works. The map shows downtown Boston.", action: "pick" });
           setMapCenter(DOWNTOWN);
           return;
         }
@@ -173,9 +179,17 @@ export default function Home() {
         if (first) {
           first = false;
           setMapCenter(here);
+          toast({ kind: "success", text: "Using your location.", next: "It stays on this phone." });
         }
       },
-      () => stopLocation("Couldn't get your location. Pick a start point below instead."),
+      (err) =>
+        stopLocation(
+          err.code === err.PERMISSION_DENIED
+            ? { text: "Location is blocked for this site. You can allow it in your browser settings, or pick a start point.", action: "pick" }
+            : err.code === err.TIMEOUT
+              ? { text: "Finding your location took too long.", action: "retry" }
+              : { text: "Couldn't find your location right now.", action: "retry" },
+        ),
       { enableHighAccuracy: true, maximumAge: 15_000, timeout: 20_000 },
     );
   }
@@ -188,6 +202,7 @@ export default function Home() {
 
   // ---- Search ----
   async function search(k: KindId, r: number = radius) {
+    const seq = ++searchSeq.current;
     setKind(k);
     setLoading(true);
     setSheetNote(null);
@@ -195,12 +210,18 @@ export default function Home() {
     const from = searchFrom;
     setMapCenter({ lat: from.lat, lng: from.lng });
     const res = await fetchNearby(k, from, r);
+    if (seq !== searchSeq.current) return; // you already asked for something else
     let places = res?.places ?? localFallback(k);
-    if (!res || res.source === "list") {
-      setSheetNote("Couldn't reach OpenStreetMap, so these come from our own small list.");
+    if (!res) {
+      setSheetNote({ text: navigator.onLine ? "Couldn't reach the places server, so these are from our own small list." : "You're offline, so these are from our own small list.", tone: "warn" });
+    } else if (res.ok === false && res.reason === "rate-limited") {
+      places = localFallback(k);
+      setSheetNote({ text: "Lots of searches at once. Wait a few seconds, then try again.", tone: "warn" });
+    } else if (res.source === "snapshot") {
+      setSheetNote({ text: "The live map server is busy, so these are saved places (they may be a little out of date).", tone: "info" });
+    } else if (res.source === "list") {
+      setSheetNote({ text: "Couldn't reach the map server, so these are from our own small list.", tone: "info" });
     }
-    if (res && res.ok === false && res.reason === "rate-limited") setSheetNote("Too many searches at once. Please wait a moment.");
-    if (!res) places = localFallback(k);
 
     let list = measure(places, from, r);
     if (!stim) {
@@ -240,17 +261,20 @@ export default function Home() {
   }
 
   function toggleHit(p: NearbyPlace) {
-    setTrayNote(null);
     if (hitIds.includes(p.id)) {
+      const before = hitlist;
       updateHitlist(hitlist.filter((h) => h.id !== p.id));
+      toast({ kind: "info", text: `Removed ${p.name}.`, action: { label: "Undo", onClick: () => updateHitlist(before) } });
       return;
     }
     if (hitlist.length >= MAX_HITLIST) {
-      setTrayNote(`Your hitlist is full (${MAX_HITLIST} places). Remove one to add another.`);
+      toast({ kind: "error", text: `Your hitlist is full (${MAX_HITLIST} places).`, next: "Remove one to add another." });
       return;
     }
     const { id, name, kind: k, lat, lng, hours, hoursVerified, source } = p;
+    const before = hitlist;
     updateHitlist([...hitlist, { id, name, kind: k, lat, lng, hours, hoursVerified, source }]);
+    toast({ kind: "success", text: `Added ${p.name} to your hitlist.`, action: { label: "Undo", onClick: () => updateHitlist(before) } });
     setJustAdded(p.id);
     setTimeout(() => setJustAdded((cur) => (cur === p.id ? null : cur)), 900);
   }
@@ -287,6 +311,11 @@ export default function Home() {
       : [...favorites, { id: p.id, name: p.name, kind: p.kind, lat: p.lat, lng: p.lng, hours: p.hours, hoursVerified: p.hoursVerified, source: p.source }];
     setFavorites(next);
     saveFavorites(next);
+    toast({
+      kind: "success",
+      text: favIds.includes(p.id) ? `Took the star off ${p.name}.` : `Starred ${p.name}.`,
+      next: favIds.includes(p.id) ? undefined : "Starred places come first when Stim mode is off.",
+    });
   }
 
   // ---- Planning ----
@@ -299,6 +328,20 @@ export default function Home() {
   }
 
   async function makePlan(values: FormValues) {
+    setPlanBusy(true);
+    try {
+      await makePlanNow(values);
+    } finally {
+      setPlanBusy(false);
+    }
+  }
+
+  // A plan problem: pinned to the screen with what to do next.
+  function planProblem(text: string, next: string) {
+    toast({ kind: "error", text, next });
+  }
+
+  async function makePlanNow(values: FormValues) {
     // Remember the choices, so coming back keeps them. (Your live location is never saved.)
     const nextPrefs: Prefs = { ...(prefs as Prefs), needs: values.needs, loop: values.loop, calm: values.calm, bingo: values.bingo, start, stim, radius, includeAddOns };
     setPrefs(nextPrefs);
@@ -317,7 +360,7 @@ export default function Home() {
       const addOns = hitlist.filter((p) => !isMission(p));
       const ordered = stim ? hitlist : [...missions, ...(includeAddOns ? addOns : [])];
       if (ordered.length === 0) {
-        setMessage("Your hitlist only has add-ons. Turn on \"Include the add-ons\", or add an errand.");
+        planProblem("Your hitlist only has add-ons.", "Turn on \"Include the add-ons\", or add an errand.");
         return;
       }
       estimated = planHitlist({ startTime, loop: values.loop, mode, start: from }, ordered.map(toPlace));
@@ -331,14 +374,11 @@ export default function Home() {
     // Nothing fits: show the kind message here, and keep any plan already in progress.
     const empty = emptyPlanMessage(estimated);
     if (empty) {
-      setMessage(
-        hitlist.length > 0 && estimated.skipped.length > 0
-          ? `${estimated.skipped.map((s) => `${s.name}: ${s.reason}`).join(" ")} Try another time or other places.`
-          : empty,
-      );
+      if (hitlist.length > 0 && estimated.skipped.length > 0) {
+        planProblem(`No plan yet. ${estimated.skipped.map((s) => `${s.name}: ${s.reason}`).join(" ")}`, "Try another start time, or other places.");
+      } else planProblem(`No plan yet. ${empty}`, "Change the time or what you picked, then try again.");
       return;
     }
-    setMessage(null);
 
     // Train rides: swap the estimated waits for the real scheduled times. If the lookup fails, the plan still works.
     let plan = estimated;
@@ -347,6 +387,7 @@ export default function Home() {
       setChecking(true);
       const data = await fetchTrainData(estimated);
       plan = applyTrainData(estimated, data);
+      if (!data) toast({ kind: "info", text: "Couldn't check train times.", next: "Your plan uses estimates. Check the MBTA before you go." });
       train = data?.departures; // saved, so "I'm running late" can re-time without asking again
       setChecking(false);
     } else {
@@ -367,9 +408,12 @@ export default function Home() {
 
   return (
     <main className={`home ${kind ? "has-sheet" : ""}`}>
-      <header className="brand brand-compact">
-        <h1>errandJaeger</h1>
-        <p>Turn today&apos;s errands into a calmer bingo walk.</p>
+      <header className="brand brand-compact brand-row">
+        <div>
+          <h1>errandJaeger</h1>
+          <p>Turn today&apos;s errands into a calmer bingo walk.</p>
+        </div>
+        <ThemeToggle compact />
       </header>
 
       {current && !waiting && (
@@ -381,20 +425,20 @@ export default function Home() {
         </Link>
       )}
 
-      {waiting && (
-        <div className="card confirm" role="alertdialog" aria-labelledby="replace-title">
-          <strong id="replace-title">Replace your plan in progress?</strong>
-          <p>Your new plan is ready. Making it will replace the plan you already started, and its bingo ticks.</p>
-          <div className="confirm-buttons">
-            <button type="button" className="btn btn-secondary" onClick={() => router.push("/plan")}>
-              Keep my current plan
-            </button>
-            <button type="button" className="btn btn-primary" onClick={() => saveAndGo(waiting.plan, waiting.mode, waiting.train, waiting.leftNow, waiting.directions, waiting.bingo)}>
-              Replace it
-            </button>
-          </div>
-        </div>
-      )}
+      <Dialog
+        open={!!waiting}
+        title="Replace your plan in progress?"
+        confirmLabel="Replace it"
+        cancelLabel="Keep my plan"
+        busy={planBusy}
+        onCancel={() => {
+          setWaiting(null);
+          toast({ kind: "info", text: "Kept your current plan.", next: "Your new choices are still here." });
+        }}
+        onConfirm={() => waiting && saveAndGo(waiting.plan, waiting.mode, waiting.train, waiting.leftNow, waiting.directions, waiting.bingo)}
+      >
+        <p>Your new plan is ready. Replacing will clear the plan you already started, and its bingo ticks.</p>
+      </Dialog>
 
       <div className={`map-wrap ${stim ? "is-lively" : "is-calm"}`}>
         <div className="cat-chips" role="toolbar" aria-label="Search nearby">
@@ -437,15 +481,38 @@ export default function Home() {
               </button>
             ))}
           </div>
-          <button type="button" className="locate-btn" onClick={() => (usingLocation || locating ? stopLocation() : locate())}>
-            {locating ? "Finding you…" : usingLocation ? "Stop using my location" : "Use my location"}
+          <button type="button" className="locate-btn" aria-busy={locating} onClick={() => (usingLocation || locating ? stopLocation() : locate())}>
+            {locating ? (
+              <>
+                <Spinner /> Finding you… (tap to stop)
+              </>
+            ) : usingLocation ? (
+              "Stop using my location"
+            ) : (
+              "Use my location"
+            )}
           </button>
         </div>
       </div>
       {locNote && (
-        <p className="soft loc-note" role="status">
-          {locNote}
-        </p>
+        <Banner
+          tone="warn"
+          action={
+            locNote.action === "retry"
+              ? { label: "Try again", onClick: locate }
+              : {
+                  label: "Pick a start point",
+                  onClick: () => {
+                    setLocNote(null);
+                    const el = document.getElementById("start-picker");
+                    el?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "center" });
+                    (el?.querySelector("button") as HTMLButtonElement | null)?.focus({ preventScroll: true });
+                  },
+                }
+          }
+        >
+          {locNote.text}
+        </Banner>
       )}
 
       <BrainDump onAddNearest={addNearest} onShow={(k) => search(k)} />
@@ -496,35 +563,31 @@ export default function Home() {
           rememberSettings({ includeAddOns: v });
         }}
       />
-      {trayNote && (
-        <p className="soft" role="status">
-          {trayNote}
-        </p>
-      )}
 
       {prefs ? (
-        <PlanForm initial={prefs} onSubmit={makePlan} start={start} onStart={pickStart} usingLocation={usingLocation} hitlistCount={hitlist.length} />
+        <PlanForm
+          initial={prefs}
+          onSubmit={makePlan}
+          start={start}
+          onStart={pickStart}
+          usingLocation={usingLocation}
+          hitlistCount={hitlist.length}
+          busy={planBusy}
+          busyText={checking ? "Checking train times…" : "Making your plan…"}
+        />
       ) : (
-        <p className="soft">Loading…</p>
+        <Skeleton rows={2} label="Loading" />
       )}
 
-      {checking && (
-        <p className="soft" role="status">
-          Checking train times…
-        </p>
-      )}
-
-      {message && (
-        <p className="kind-message" role="status">
-          {message}
-        </p>
-      )}
 
       {kind && now && (
         <NearbySheet
           title={`${kindLabel} within ${distLabel}`}
           loading={loading}
-          note={sheetNote}
+          note={sheetNote?.text ?? null}
+          noteTone={sheetNote?.tone}
+          onRetry={sheetNote && kind ? () => search(kind) : undefined}
+          onWiden={radius < RADII[RADII.length - 1] ? () => chooseRadius(RADII[RADII.indexOf(radius) + 1]) : undefined}
           results={found}
           hitIds={hitIds}
           favIds={favIds}

@@ -1,5 +1,6 @@
 "use client";
 
+import { Skeleton } from "@/components/Busy";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import MapView, { type MapPoint, type RouteLine } from "@/components/MapView";
@@ -19,6 +20,7 @@ import { fetchTrainData, legKey, transitLegs, type CheckResponse } from "@/lib/t
 import { LINE_COLOUR, familyOf } from "@/lib/transit/look";
 import { fetchLive, liveKey, type LiveResponse } from "@/lib/transit/live";
 import { useOuting } from "@/lib/useOuting";
+import { useResolvedTheme } from "@/lib/useTheme";
 
 // Directions to one stop of your plan: options (Transit / Walk / Car), then the route on a map with simple steps.
 // Facts come from our map, the MBTA schedule and live data, and OSRM; nothing here is written by AI.
@@ -26,18 +28,29 @@ import { useOuting } from "@/lib/useOuting";
 const LIVE_MS = 30_000;
 const CLOCK_MS = 15_000;
 type LatLng = { lat: number; lng: number };
-const WALK_COLOUR = "#ecf2ee"; // light dots on the dark map
-const CAR_COLOUR = "#a9b8b0";
+// Walk dots and the drive line: dark on the light map, light on the dark map.
+const WALK_COLOUR = { light: "#2a2622", dark: "#f2ede6" };
+const CAR_COLOUR = { light: "#5c534a", dark: "#c2b9ad" };
 
 const minuteFloor = (ms: number) => new Date(Math.floor(ms / 60000) * 60000);
 
 export default function GoPage() {
   const { outing, loaded } = useOuting();
+  const theme = useResolvedTheme();
   const [index, setIndex] = useState<number | null>(null); // which stop we are going to
   const [nowMs, setNowMs] = useState(0);
   const [user, setUser] = useState<LatLng | null>(null);
   const watchId = useRef<number | null>(null);
-  const [tab, setTab] = useState<Tab>("transit");
+  const [tab, setTabState] = useState<Tab>("transit");
+  // Remember the tab you like (Transit / Walk / Car) between visits.
+  const setTab = (t: Tab) => {
+    setTabState(t);
+    try {
+      window.localStorage.setItem("errandjaeger:v1:go-tab", t);
+    } catch {
+      // storage blocked: fine
+    }
+  };
   const [chosenKey, setChosenKey] = useState<string | null>(null);
   // Schedule lookup per transit option: "pending" while asking, null if it failed.
   const [checks, setChecks] = useState<Record<string, CheckResponse | null | "pending">>({});
@@ -53,6 +66,12 @@ export default function GoPage() {
   useEffect(() => {
     setNowMs(Date.now());
     const t = setInterval(() => setNowMs(Date.now()), CLOCK_MS);
+    try {
+      const saved = window.localStorage.getItem("errandjaeger:v1:go-tab");
+      if (saved === "walk" || saved === "car" || saved === "transit") setTabState(saved);
+    } catch {
+      // ignore
+    }
     setReducedMotion(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
     if (isLocationOn() && "geolocation" in navigator) {
       watchId.current = navigator.geolocation.watchPosition(
@@ -259,14 +278,14 @@ export default function GoPage() {
       { lat: dest.lat, lng: dest.lng, kind: "end", label: `Destination: ${dest.name}` },
     ];
     if (shown.mode === "car") {
-      lines.push({ coords: carRoute?.geometry ?? [[origin.lng, origin.lat], [dest.lng, dest.lat]], colour: CAR_COLOUR, dotted: false });
+      lines.push({ coords: carRoute?.geometry ?? [[origin.lng, origin.lat], [dest.lng, dest.lat]], colour: CAR_COLOUR[theme], dotted: false });
     }
     for (const s of segments) {
       if (s.kind === "walk") {
         const r = walkFor(s);
         // Join the exact ends, so the dotted line meets the stations and your real spot.
         const middle = r?.geometry ?? [];
-        lines.push({ coords: [[s.from.lng, s.from.lat], ...middle, [s.to.lng, s.to.lat]], colour: WALK_COLOUR, dotted: true });
+        lines.push({ coords: [[s.from.lng, s.from.lat], ...middle, [s.to.lng, s.to.lat]], colour: WALK_COLOUR[theme], dotted: true });
       } else {
         const colour = LINE_COLOUR[familyOf(s.leg.routeIds)];
         lines.push({ coords: s.stations.map((st) => [st.lng, st.lat]), colour, dotted: false });
@@ -278,10 +297,10 @@ export default function GoPage() {
     const fit = lines.flatMap((l) => l.coords);
     return { lines, points, fit };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shown?.key, segments, segWalks, walkRoute, carRoute, tripKey]);
+  }, [shown?.key, segments, segWalks, walkRoute, carRoute, tripKey, theme]);
 
   // ---- Screens ----
-  if (!loaded || (index === null && outing)) return <p className="soft">Loading…</p>;
+  if (!loaded || (index === null && outing)) return <Skeleton rows={2} label="Loading" />;
   if (!outing || !stop || !origin || !dest) {
     return (
       <main>
@@ -354,7 +373,17 @@ export default function GoPage() {
           carState={carRoute === undefined ? "loading" : carRoute ? "ok" : "failed"}
           liveState={liveState}
           now={now}
-          onChoose={(o) => setChosenKey(o.key)}
+          computing={nowMs === 0}
+          walkNote={
+            walkRoute === null || Object.values(segWalks).some((w) => w === null)
+              ? "Couldn't get walking directions right now, so walking times are estimates from distance."
+              : null
+          }
+          onChoose={(o) => {
+            setChosenKey(o.key);
+            // Start the route view at the top, with the map in sight.
+            requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: reducedMotion ? "auto" : "smooth" }));
+          }}
         />
       )}
       <p className="soft go-foot">

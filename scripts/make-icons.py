@@ -2,9 +2,9 @@
 # Run: python3 scripts/make-icons.py
 import struct, zlib
 
-BG = (11, 18, 15)
-MINT = (116, 201, 163)
-GOLD = (227, 196, 99)
+BG = (251, 246, 238)
+MINT = (31, 95, 91)
+GOLD = (224, 168, 0)
 LINES = [(0, 132, 61), (218, 41, 28), (237, 139, 0), (0, 61, 165)]
 
 def draw(size, pad_ratio=0.16):

@@ -1,7 +1,10 @@
 "use client";
 
+import { Skeleton } from "@/components/Busy";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import RankCard from "@/components/RankCard";
+import ThemeToggle from "@/components/ThemeToggle";
 import StatsCards from "@/components/StatsCards";
 import { BADGES, badgeCounts } from "@/lib/profile";
 import { formatDateNY } from "@/lib/planner/time";
@@ -22,7 +25,7 @@ export default function ProfilePage() {
     });
   }, []);
 
-  if (!stats) return <p className="soft">Loading…</p>;
+  if (!stats) return <Skeleton rows={2} label="Loading" />;
   const earned = BADGES.filter((b) => badges[b.square]).length;
 
   return (
@@ -52,7 +55,12 @@ export default function ProfilePage() {
 
       <h2>Recent outings</h2>
       {recent.length === 0 ? (
-        <p className="soft">Nothing yet. Your first finished outing will show up here.</p>
+        <div className="empty-state">
+          <p>Nothing yet. Make a plan, tick a square, then press Finish outing: it will show up here.</p>
+          <Link href="/" className="btn btn-primary btn-small">
+            Make a plan
+          </Link>
+        </div>
       ) : (
         <ul className="recent">
           {recent.map((o) => (
@@ -66,6 +74,10 @@ export default function ProfilePage() {
           ))}
         </ul>
       )}
+      <h2>Appearance</h2>
+      <p className="soft">Light is the default. Auto follows your phone.</p>
+      <ThemeToggle />
+
       <p className="soft">Saved on this phone{" "}(and in the app&apos;s database when one is set up). No account needed.</p>
     </main>
   );

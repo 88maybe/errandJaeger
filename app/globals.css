@@ -5,34 +5,12 @@
    ========================================================= */
 
 :root {
-  color-scheme: dark;
-  /* Colour: a dark, calm base (near-black with a slight green tint).
-     Names are kept from the first design so every component follows along. */
-  --cream: #0b120f; /* page background */
-  --paper: #131c18; /* cards */
-  --paper-2: #1a2520; /* raised cards, sheets */
-  --sand: #2a3832; /* borders, quiet fills */
-  --ink: #ecf2ee; /* main text */
-  --ink-soft: #a9b8b0; /* secondary text (still high contrast on the dark base) */
-  --on-accent: #06110c; /* text on a bright accent */
-
-  /* Accents. Stim mode off (default): muted. Stim mode on: brighter (see [data-stim="on"] below). */
-  --teal: #74c9a3; /* main action, "done" */
-  --teal-deep: #5bb38c;
-  --sage: #1b2f26; /* soft accent fill */
-  --clay: #e39a76; /* warm accent */
-  --clay-soft: #2f211a;
-  --gold: #e3c463; /* win highlight */
-  --wellbeing: #9cc77c;
-  --warn-bg: #3b1d14; /* loud warnings */
-  --warn-ink: #ffd9c9;
-  --sched-bg: #2a2417; /* "scheduled" chips */
-
-  /* Boston subway colours (official), used for line chips and route lines */
+  /* ---- Shared ---- */
+  /* Boston subway colours as bold accents: Green = errands, Orange = treats, Blue = wellbeing, Red = warnings */
   --gl: #00843d;
-  --rl: #da291c;
   --ol: #ed8b00;
   --bl: #003da5;
+  --rl: #da291c;
 
   /* Type scale */
   --text-sm: 0.9375rem;
@@ -53,17 +31,82 @@
 
   --radius: 16px;
   --tap: 56px; /* minimum tap target height */
+  --shadow: 0 1px 2px rgb(42 38 34 / 0.08), 0 2px 8px rgb(42 38 34 / 0.06);
+  --press: 0.12s;
 }
 
-/* Stim mode on: brighter, livelier accents */
-:root[data-stim="on"] {
-  --teal: #3ee6a0;
-  --teal-deep: #22c985;
-  --sage: #143826;
-  --clay: #ff7b47;
-  --clay-soft: #3a1d12;
-  --gold: #ffd43b;
-  --wellbeing: #b3ec6a;
+/* ---- Light (default): warm cream, deep teal, terracotta ---- */
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+  --cream: #fbf6ee; /* page background */
+  --paper: #fffdf9; /* cards */
+  --paper-2: #fffaf2; /* sheets, raised cards */
+  --sand: #e6dac8; /* borders, quiet fills */
+  --ink: #2a2622; /* main text */
+  --ink-soft: #5c534a; /* secondary text */
+  --on-accent: #ffffff; /* text on a coloured accent */
+  --teal: #1f5f5b; /* main action */
+  --teal-deep: #174744;
+  --sage: #dcebe5; /* soft teal fill */
+  --clay: #a64a28; /* terracotta */
+  --clay-soft: #f6e3d8;
+  --gold: #e0a800; /* win highlight */
+  --warn-bg: #fde8e6;
+  --warn-ink: #7a130c;
+  --sched-bg: #fff1d6;
+  --ok-bg: #e3f2e9;
+  --ok-ink: #0b4f2a;
+
+  /* Group accents (Stim mode on uses these full-strength colours) */
+  --errands: var(--gl);
+  --treats: var(--ol);
+  --wellbeing: var(--bl);
+  --warn: var(--rl);
+  --on-treats: #2a2622; /* dark text on orange reads best */
+}
+
+/* ---- Dark: calm charcoal, no glow ---- */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --cream: #161514;
+  --paper: #201f1d;
+  --paper-2: #262422;
+  --sand: #3a3733;
+  --ink: #f2ede6;
+  --ink-soft: #c2b9ad;
+  --on-accent: #ffffff;
+  --teal: #4fa59c;
+  --teal-deep: #3d8b83;
+  --sage: #22312d;
+  --clay: #d9825d;
+  --clay-soft: #3a2820;
+  --gold: #e8b923;
+  --warn-bg: #3d1a16;
+  --warn-ink: #ffd5cf;
+  --sched-bg: #3a2f1a;
+  --ok-bg: #1d3326;
+  --ok-ink: #bfe8cf;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  /* The official colours are dark; lift them a little so they read on charcoal */
+  --errands: #2fa866;
+  --treats: #f29b2a;
+  --wellbeing: #4f86e8;
+  --warn: #ee5a4c;
+  --on-treats: #1b1a18;
+}
+
+/* Stim mode off: the same colours, a little softer (still clearly green, orange, blue, red) */
+:root[data-stim="off"] {
+  --errands: color-mix(in srgb, var(--gl) 78%, var(--ink-soft));
+  --treats: color-mix(in srgb, var(--ol) 80%, var(--ink-soft));
+  --wellbeing: color-mix(in srgb, var(--bl) 80%, var(--ink-soft));
+}
+:root[data-theme="dark"][data-stim="off"] {
+  --errands: #3c9a66;
+  --treats: #d99640;
+  --wellbeing: #5d87d0;
 }
 
 * {
@@ -1008,10 +1051,10 @@ p {
   background: var(--group-colour);
 }
 .cat-errands {
-  --group-colour: var(--teal);
+  --group-colour: var(--errands);
 }
 .cat-treats {
-  --group-colour: var(--clay);
+  --group-colour: var(--treats);
 }
 .cat-wellbeing {
   --group-colour: var(--wellbeing);
@@ -1101,10 +1144,10 @@ p {
   padding: 0;
 }
 .pin-errands {
-  --group-colour: var(--teal);
+  --group-colour: var(--errands);
 }
 .pin-treats {
-  --group-colour: var(--clay);
+  --group-colour: var(--treats);
 }
 .pin-wellbeing {
   --group-colour: var(--wellbeing);
@@ -1774,7 +1817,8 @@ p {
 
 
 /* =========================================================
-   Visual system (Batch C): dark, calm base; subway colours as accents
+   Visual system: warm base, subway colours as bold accents.
+   Works in light and dark. No glow, no neon.
    ========================================================= */
 body {
   -webkit-font-smoothing: antialiased;
@@ -1782,9 +1826,21 @@ body {
 a {
   color: var(--teal);
 }
+
+/* Page titles carry a short four-colour "subway" stripe */
 .page-title {
   font-size: var(--text-xl);
   color: var(--ink);
+}
+.page-title::after,
+.brand h1::after {
+  content: "";
+  display: block;
+  width: 88px;
+  height: 5px;
+  margin-top: var(--s2);
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--errands) 0 25%, var(--treats) 25% 50%, var(--wellbeing) 50% 75%, var(--warn) 75%);
 }
 .brand h1 {
   color: var(--teal);
@@ -1795,50 +1851,66 @@ a {
 .summary-card,
 .place-card,
 .hit {
-  box-shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset;
+  box-shadow: var(--shadow);
 }
 .sheet {
   background: var(--paper-2);
   border-color: var(--sand);
-  box-shadow: 0 -8px 24px rgb(0 0 0 / 0.5);
+  box-shadow: 0 -4px 18px rgb(0 0 0 / 0.14);
 }
 .sheet-head {
   background: var(--paper-2);
 }
 .place-card {
   background: var(--paper);
+  border-left: 6px solid var(--group-colour, var(--sand));
 }
+.place-errands {
+  --group-colour: var(--errands);
+}
+.place-treats {
+  --group-colour: var(--treats);
+}
+.place-wellbeing {
+  --group-colour: var(--wellbeing);
+}
+
+/* Category chips: the dot and, when chosen, the whole chip take the group colour */
 .cat-chip {
-  background: var(--paper-2);
+  background: var(--paper);
   color: var(--ink);
   border-color: var(--sand);
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.45);
+  box-shadow: var(--shadow);
 }
 .cat-chip[aria-pressed="true"] {
-  background: var(--teal);
-  border-color: var(--teal);
+  background: var(--group-colour);
+  border-color: var(--group-colour);
   color: var(--on-accent);
 }
+.cat-treats[aria-pressed="true"] {
+  color: var(--on-treats);
+}
 .cat-chip[aria-pressed="true"]::before {
-  background: var(--on-accent);
+  background: currentColor;
 }
 .cat-group-label {
-  background: rgb(11 18 15 / 0.8);
-  color: var(--ink-soft);
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  color: var(--ink);
 }
 .radius,
 .locate-btn {
-  background: var(--paper-2);
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.45);
+  background: var(--paper);
+  box-shadow: var(--shadow);
 }
 .radius button {
   color: var(--ink);
 }
 .radius button[aria-pressed="true"] {
+  background: var(--teal);
   color: var(--on-accent);
 }
 .map-box {
-  background: #101915;
+  background: var(--sage);
 }
 .map-credit {
   position: absolute;
@@ -1846,8 +1918,8 @@ a {
   bottom: 2px;
   z-index: 4;
   font-size: 0.7rem;
-  color: var(--ink-soft);
-  background: rgb(11 18 15 / 0.7);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--paper) 85%, transparent);
   padding: 0 4px;
   border-radius: 4px;
   pointer-events: none;
@@ -1855,18 +1927,17 @@ a {
 .map-note {
   bottom: auto;
   top: 60px;
-  background: var(--paper-2);
+  background: var(--paper);
 }
-/* MapLibre's own attribution box, in dark */
-.maplibregl-ctrl-attrib,
-.maplibregl-ctrl-attrib.maplibregl-compact {
-  background: rgb(19 28 24 / 0.9) !important;
+:root[data-theme="dark"] .maplibregl-ctrl-attrib,
+:root[data-theme="dark"] .maplibregl-ctrl-attrib.maplibregl-compact {
+  background: rgb(32 31 29 / 0.92) !important;
   color: var(--ink-soft);
 }
-.maplibregl-ctrl-attrib a {
+:root[data-theme="dark"] .maplibregl-ctrl-attrib a {
   color: var(--ink);
 }
-.maplibregl-ctrl-attrib-button {
+:root[data-theme="dark"] .maplibregl-ctrl-attrib-button {
   filter: invert(1);
 }
 .bottom-nav {
@@ -1881,7 +1952,6 @@ a {
   text-align: center;
   padding: 2px 8px;
   border-radius: 6px;
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.18);
   letter-spacing: 0.02em;
 }
 .mode-tab {
@@ -1893,10 +1963,14 @@ a {
 .dep-chip {
   background: var(--sched-bg);
   border-color: transparent;
+  color: var(--ink);
 }
 .dep-live {
-  background: var(--sage);
-  border-color: var(--teal);
+  background: var(--ok-bg);
+  border-color: var(--errands);
+}
+.dep-live small {
+  color: var(--ok-ink);
 }
 .time-bar {
   height: 14px;
@@ -1919,7 +1993,7 @@ a {
   background: var(--teal);
 }
 .you-dot {
-  background: #4c9bff;
+  background: #1a73e8;
 }
 input,
 textarea,
@@ -1930,11 +2004,63 @@ select {
 }
 ::placeholder {
   color: var(--ink-soft);
-  opacity: 0.8;
+  opacity: 0.85;
 }
-/* Stim mode off: muted line chips (still the right colours, a little softer) */
 :root[data-stim="off"] .line-chip {
-  filter: saturate(0.8);
+  filter: saturate(0.85);
+}
+
+/* Warnings and last-train alerts use the Red Line colour */
+.alert-loud,
+.step-warning {
+  border-color: var(--warn);
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+.option-warning {
+  color: var(--warn);
+}
+
+/* Hitlist: missions are Green, add-ons take their own group colour */
+.hit {
+  border-left: 6px solid var(--group-colour, var(--sand));
+}
+.tag-mission {
+  background: var(--errands);
+  color: var(--on-accent);
+}
+.tag-addon {
+  background: var(--group-colour, var(--treats));
+  color: var(--on-accent);
+}
+.hit-treats .tag-addon {
+  color: var(--on-treats);
+}
+
+/* Bingo squares: stops take the colour of what they are; "notice" squares are Blue; free space is gold */
+.square.stop {
+  border-color: var(--group-colour, var(--errands));
+  border-style: solid;
+  border-width: 3px;
+}
+.square.extra {
+  border-color: var(--wellbeing);
+}
+.square.done {
+  background: var(--group-colour, var(--teal));
+  border-color: var(--group-colour, var(--teal));
+  color: var(--on-accent);
+}
+.square.extra.done {
+  background: var(--wellbeing);
+  border-color: var(--wellbeing);
+}
+.square.done.sq-treats {
+  color: var(--on-treats);
+}
+.square.free {
+  background: color-mix(in srgb, var(--gold) 25%, var(--paper));
+  border-color: var(--gold);
 }
 
 /* ---------- Profile: rank, badges ---------- */
@@ -1942,8 +2068,9 @@ select {
   margin-top: var(--s4);
   padding: var(--s4);
   border-radius: var(--radius);
-  background: linear-gradient(135deg, var(--sage), var(--paper) 70%);
-  border: 1.5px solid var(--teal);
+  background: var(--paper);
+  border: 1.5px solid var(--sand);
+  border-top: 6px solid var(--errands);
   display: grid;
   gap: var(--s1);
 }
@@ -2093,4 +2220,429 @@ select {
   color: var(--ink);
   font: inherit;
   cursor: pointer;
+}
+
+/* =========================================================
+   Feedback: toasts, dialogs, busy states, banners
+   ========================================================= */
+.toasts {
+  position: fixed;
+  z-index: 50;
+  left: 0;
+  right: 0;
+  bottom: calc(64px + env(safe-area-inset-bottom) + var(--s3));
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 var(--s3);
+  display: grid;
+  gap: var(--s2);
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  padding: var(--s3) var(--s3) var(--s3) var(--s4);
+  border-radius: 14px;
+  background: var(--ink);
+  color: var(--cream);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+  border-left: 6px solid var(--teal);
+}
+.toast-success {
+  border-left-color: var(--errands);
+}
+.toast-error {
+  border-left-color: var(--warn);
+}
+.toast-icon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  background: var(--cream);
+  color: var(--ink);
+}
+.toast-error .toast-icon {
+  background: var(--warn);
+  color: #fff;
+}
+.toast-success .toast-icon {
+  background: var(--errands);
+  color: #fff;
+}
+.toast-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-size: var(--text-sm);
+  line-height: 1.35;
+}
+.toast-text span {
+  opacity: 0.85;
+}
+.toast-action {
+  flex: none;
+  min-height: 40px;
+  padding: 0 var(--s3);
+  border-radius: 999px;
+  border: 1.5px solid var(--cream);
+  background: transparent;
+  color: var(--cream);
+  font: inherit;
+  font-weight: 700;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.toast-close {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cream);
+  font: inherit;
+  cursor: pointer;
+}
+
+.dialog {
+  width: min(440px, calc(100vw - 2rem));
+  padding: 0;
+  border: 0;
+  border-radius: 20px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 16px 48px rgb(0 0 0 / 0.3);
+}
+.dialog::backdrop {
+  background: rgb(20 18 16 / 0.5);
+}
+.dialog-box {
+  padding: var(--s5);
+  display: grid;
+  gap: var(--s3);
+}
+.dialog-box h2 {
+  margin: 0;
+}
+.dialog-buttons {
+  display: flex;
+  gap: var(--s2);
+}
+.dialog-buttons .btn {
+  margin-top: var(--s2);
+}
+.btn-danger {
+  background: var(--warn);
+  border-color: var(--warn);
+  color: #fff;
+}
+
+.spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  border: 2.5px solid currentColor;
+  border-right-color: transparent;
+  vertical-align: -0.15em;
+  opacity: 0.8;
+}
+.working {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+  margin-top: var(--s3);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+.still-working {
+  flex-basis: 100%;
+  font-style: italic;
+}
+.skeletons {
+  display: grid;
+  gap: var(--s2);
+  margin-top: var(--s2);
+}
+.skeleton {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s4);
+  border-radius: var(--radius);
+  border: 1.5px solid var(--sand);
+  background: var(--paper);
+}
+.skeleton span {
+  height: 14px;
+  border-radius: 7px;
+  background: var(--sand);
+}
+.skeleton span:first-child {
+  width: 60%;
+  height: 18px;
+}
+.skeleton span:last-child {
+  width: 85%;
+}
+.inline-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin: var(--s2) 0;
+  padding: var(--s2) var(--s3);
+  border-radius: 12px;
+  font-size: var(--text-sm);
+  background: var(--sched-bg);
+  color: var(--ink);
+  border: 1.5px solid color-mix(in srgb, var(--treats) 50%, transparent);
+}
+.banner-warn {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  border-color: color-mix(in srgb, var(--warn) 50%, transparent);
+}
+.banner-icon {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  background: var(--treats);
+  color: var(--on-treats);
+}
+.banner-warn .banner-icon {
+  background: var(--warn);
+  color: #fff;
+}
+.banner-text {
+  flex: 1;
+}
+.banner-action {
+  flex: none;
+  min-height: 40px;
+  padding: 0 var(--s3);
+  border-radius: 999px;
+  border: 1.5px solid currentColor;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.why-disabled {
+  margin-top: var(--s2);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  text-align: center;
+}
+.theme-toggle.compact button {
+  min-height: 40px;
+  font-size: var(--text-sm);
+}
+.brand-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+/* Instant press feedback: a colour change everywhere; a tiny press-in only in Stim mode */
+button,
+.btn,
+.chip,
+.cat-chip,
+a.card {
+  transition: background-color var(--press) ease-out, border-color var(--press) ease-out, opacity var(--press) ease-out,
+    transform var(--press) ease-out;
+}
+button:active:not(:disabled),
+.btn:active,
+a.card:active {
+  opacity: 0.8;
+}
+:root[data-stim="on"] button:active:not(:disabled),
+:root[data-stim="on"] .btn:active {
+  transform: scale(0.97);
+}
+button:disabled {
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .spinner {
+    animation: spin 0.9s linear infinite;
+  }
+  .toast {
+    animation: fade-in 0.2s ease-out;
+  }
+  :root[data-stim="on"] .toast {
+    animation: toast-up 0.25s ease-out;
+  }
+  .skeleton span {
+    animation: skeleton-fade 1.4s ease-in-out infinite;
+  }
+  .dialog[open] {
+    animation: fade-in 0.15s ease-out;
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes toast-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes skeleton-fade {
+    50% {
+      opacity: 0.45;
+    }
+  }
+  /* No-stim: fades only, so the sliding sheet and cards become fades */
+  :root[data-stim="off"] .sheet-in,
+  :root[data-stim="off"] .card-slide {
+    animation-name: fade-in;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* A still spinner would look broken: show a quiet pulsing-free ring */
+  .spinner {
+    border-right-color: currentColor;
+    opacity: 0.5;
+  }
+}
+
+/* =========================================================
+   Step progress drawn like stops on a subway line
+   ========================================================= */
+.subway {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: var(--s3) 0 var(--s4);
+  padding: 0 4px;
+  list-style: none;
+}
+.subway::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 50%;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 3px;
+  background: var(--sand);
+}
+.subway::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 3px;
+  width: var(--done, 0%);
+  background: var(--teal);
+}
+.subway li {
+  position: relative;
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 3px solid var(--stop-colour, var(--ink-soft));
+}
+.subway li.passed {
+  background: var(--stop-colour, var(--teal));
+}
+.subway li.here {
+  width: 26px;
+  height: 26px;
+  background: var(--paper);
+  border-width: 5px;
+  box-shadow: 0 0 0 3px var(--paper);
+}
+.stop-walk {
+  --stop-colour: var(--ink-soft);
+}
+.stop-stop {
+  --stop-colour: var(--errands);
+}
+.stop-start,
+.stop-end {
+  --stop-colour: var(--teal);
+}
+.subway.many li {
+  width: 10px;
+  height: 10px;
+  border-width: 2px;
+}
+.subway.many li.here {
+  width: 20px;
+  height: 20px;
+  border-width: 4px;
+}
+.sq-errands {
+  --group-colour: var(--errands);
+}
+.sq-treats {
+  --group-colour: var(--treats);
+}
+.sq-wellbeing {
+  --group-colour: var(--wellbeing);
+}
+.hit-errands {
+  --group-colour: var(--errands);
+}
+.hit-treats {
+  --group-colour: var(--treats);
+}
+.hit-wellbeing {
+  --group-colour: var(--wellbeing);
+}
+.empty-state {
+  display: grid;
+  gap: var(--s2);
+  justify-items: start;
+  margin: var(--s3) 0;
+  padding: var(--s4);
+  border-radius: var(--radius);
+  border: 1.5px dashed var(--sand);
+}
+.empty-state p {
+  margin: 0;
+}
+.theme-toggle {
+  grid-template-columns: repeat(3, 1fr);
+}
+.theme-toggle.compact {
+  flex: none;
+  margin: 0;
+  padding: 3px;
+  gap: 2px;
+}
+.theme-toggle.compact button {
+  min-height: 40px;
+  padding: 0 10px;
+  font-size: 0.85rem;
 }
