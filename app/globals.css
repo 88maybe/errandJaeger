@@ -1,0 +1,55 @@
+/* Mobile-first base styles. Calm palette, big text, high contrast. */
+:root {
+  --bg: #f4f7f5;
+  --text: #1c2b26;
+  --muted: #4a5d55;
+  --accent: #2f6f5e;
+  --card: #ffffff;
+  --border: #c9d6d0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 18px; /* a bit larger than default for easy reading */
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+}
+
+.page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+
+h1 {
+  font-size: 1.8rem;
+  margin: 0 0 0.5rem;
+  color: var(--accent);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* Big tap targets for buttons we add later */
+button {
+  min-height: 48px;
+  font-size: 1rem;
+}
+
+/* No animations for people who ask their device to avoid motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
