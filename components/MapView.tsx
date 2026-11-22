@@ -112,7 +112,7 @@ export default function MapView(props: Props) {
           style: styleFor(document.documentElement.dataset.theme === "dark" ? "dark" : "light", stim),
           center: [center.lng, center.lat],
           zoom: 14,
-          attributionControl: { compact: true, customAttribution: "© OpenStreetMap contributors" },
+          attributionControl: false, // our own credit line sits below the map, so it never covers anything
           dragRotate: false,
           pitchWithRotate: false,
         });
@@ -355,10 +355,28 @@ export default function MapView(props: Props) {
     );
   }
   return (
-    <div className="map-box">
-      <div ref={box} className="map-canvas" aria-label="Map of places near you" role="region" />
-      {raster && <span className="map-note">Simple map (the detailed one didn&apos;t load)</span>}
-      <span className="map-credit">© OpenStreetMap contributors</span>
-    </div>
+    <>
+      <div className="map-box">
+        <div ref={box} className="map-canvas" aria-label="Map of places near you" role="region" />
+        {raster && <span className="map-note">Simple map (the detailed one didn&apos;t load)</span>}
+      </div>
+      <p className="map-attrib">
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+          © OpenStreetMap contributors
+        </a>
+        {!raster && (
+          <>
+            {" · "}
+            <a href="https://openmaptiles.org/" target="_blank" rel="noreferrer">
+              OpenMapTiles
+            </a>
+            {" · "}
+            <a href="https://openfreemap.org/" target="_blank" rel="noreferrer">
+              OpenFreeMap
+            </a>
+          </>
+        )}
+      </p>
+    </>
   );
 }

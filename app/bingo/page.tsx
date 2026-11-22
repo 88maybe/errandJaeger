@@ -1,5 +1,7 @@
 "use client";
 
+import { GROUP_LEGEND, stopGroup, type GroupId } from "@/lib/groups";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -9,18 +11,12 @@ import Dialog from "@/components/Dialog";
 import { aiBingoLabels } from "@/lib/ai/client";
 import { completedLines, isFullCard } from "@/lib/bingo";
 import { replanFromTick } from "@/lib/planner/replan";
-import { kindById } from "@/lib/nearby/categories";
 import { finishOuting, type Outing } from "@/lib/storage";
 import { useOuting } from "@/lib/useOuting";
 
-// Which colour group each stop square belongs to (from the place's map category, or what it was planned as).
-function squareGroups(outing: Outing): Record<string, "errands" | "treats" | "wellbeing"> {
-  const out: Record<string, "errands" | "treats" | "wellbeing"> = {};
-  for (const s of outing.plan.stops) {
-    const fromKind = s.place.kind ? kindById(s.place.kind)?.group : undefined;
-    out[`stop-${s.place.id}`] = fromKind ?? (s.need === "grocery" || s.need === "errand" ? "errands" : s.need === "snack" ? "treats" : "wellbeing");
-  }
-  return out;
+// Which colour group each stop square belongs to.
+function squareGroups(outing: Outing): Record<string, GroupId> {
+  return Object.fromEntries(outing.plan.stops.map((s) => [`stop-${s.place.id}`, stopGroup(s)]));
 }
 
 export default function BingoPage() {
@@ -135,6 +131,7 @@ export default function BingoPage() {
   return (
     <main>
       <h1 className="page-title">Bingo</h1>
+      <p className="hashtags">#theartofnoticing #mentalhealthwalk</p>
       <p className="starting">{outing.ticked.length} of 8 ticked. Tap a square when you&apos;ve done it.</p>
       <Working busy={wording} text="Making the square names friendlier…" slowText="Still working. The plain names stay if the AI helper is slow." />
       {!wording && outing.ai?.bingo === "failed" && <p className="soft">Using the simple square names.</p>}
@@ -170,6 +167,15 @@ export default function BingoPage() {
       <button type="button" className="btn btn-secondary" onClick={finish}>
         Finish outing
       </button>
+
+      <ul className="colour-legend" aria-label="Colour key">
+        {GROUP_LEGEND.map((g) => (
+          <li key={g.cls}>
+            <span className={`legend-dot legend-${g.cls}`} aria-hidden="true" />
+            {g.label}
+          </li>
+        ))}
+      </ul>
     </main>
   );
 }

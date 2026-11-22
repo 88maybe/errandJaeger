@@ -55,7 +55,8 @@ export default function OptionsView({ tab, onTab, transit, walk, car, carState, 
             </div>
           )}
           {transit.map((o) => (
-            <button key={o.key} type="button" className="option-card" onClick={() => onChoose(o)}>
+            <div key={o.key} className="option-card option-wrap">
+              <button type="button" className="option-main" onClick={() => onChoose(o)}>
               <span className="option-tags">
                 {o.tags.map((t) => (
                   <span key={t} className="option-tag">
@@ -77,6 +78,7 @@ export default function OptionsView({ tab, onTab, transit, walk, car, carState, 
               <span className="option-leave">{leaveInText(o.summary.leaveAt, now)}</span>
               </>
               )}
+              </button>
               <DepChips deps={o.deps} />
               {o.checked === "pending" && (
                 <small className="soft">
@@ -89,7 +91,7 @@ export default function OptionsView({ tab, onTab, transit, walk, car, carState, 
                   {w}
                 </small>
               ))}
-            </button>
+            </div>
           ))}
           {transit.length > 0 && liveState === "loading" && <Working busy text="Checking live train times…" />}
           {transit.length > 0 && liveState === "unavailable" && <Banner>No live train data right now, so these are scheduled times.</Banner>}

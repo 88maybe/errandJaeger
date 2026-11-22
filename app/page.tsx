@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BrainDump from "@/components/BrainDump";
 import { Skeleton, Banner, Spinner } from "@/components/Busy";
 import Dialog from "@/components/Dialog";
-import ThemeToggle from "@/components/ThemeToggle";
 import { useToast } from "@/components/Toast";
 import Hitlist from "@/components/Hitlist";
 import MapView from "@/components/MapView";
@@ -41,7 +40,7 @@ import {
   type Prefs,
 } from "@/lib/storage";
 
-// "Leave now": this moment, rounded down to the minute.
+// "Go now": this moment, rounded down to the minute.
 const startOfThisMinute = () => new Date(Math.floor(Date.now() / 60000) * 60000);
 
 const MAX_HITLIST = 8; // the bingo card has 8 squares
@@ -405,18 +404,10 @@ export default function Home() {
 
   const kindLabel = kind ? kindById(kind)?.label : "";
   const distLabel = radius < 1000 ? `${radius} m` : `${radius / 1000} km`;
-  const quickFavs = favorites.filter((f) => !hitIds.includes(f.id)).slice(0, 6);
+  const quickFavs = favorites.filter((f) => !hitIds.includes(f.id));
 
   return (
     <main className={`home ${kind ? "has-sheet" : ""}`}>
-      <header className="title-bar">
-        <div className="title-row">
-          <h1>Errand Jaeger</h1>
-          <ThemeToggle compact />
-        </div>
-        <p>Boundless energy, bound to the plan. Boston errands for ADHD brains.</p>
-      </header>
-
       {current && !waiting && (
         <Link href="/plan" className="card resume">
           <strong>You have a plan in progress</strong>
@@ -539,18 +530,31 @@ export default function Home() {
 
       <BrainDump onAddNearest={addNearest} onShow={(k) => search(k)} />
 
-      {quickFavs.length > 0 && (
-        <section className="favs" aria-label="Your favorites">
-          <h2>{stim ? "Your favorites" : "Familiar favorites"}</h2>
-          <div className="chips">
+      <section className="favs" aria-labelledby="favs-title">
+        <h2 id="favs-title">{stim ? "Your favorites" : "Familiar favorites"}</h2>
+        {favorites.length === 0 ? (
+          <p className="soft">Star places (☆ in the map results) to see them here.</p>
+        ) : quickFavs.length === 0 ? (
+          <p className="soft">All your starred places are already in your hitlist.</p>
+        ) : (
+          <select
+            className="fav-select"
+            aria-label="Add a starred place to your hitlist"
+            value=""
+            onChange={(e) => {
+              const f = favorites.find((x) => x.id === e.target.value);
+              if (f) toggleHit(f);
+            }}
+          >
+            <option value="">Add a starred place… ({quickFavs.length})</option>
             {quickFavs.map((f) => (
-              <button key={f.id} type="button" className="chip chip-small" onClick={() => toggleHit(f)}>
-                ★ {f.name}
-              </button>
+              <option key={f.id} value={f.id}>
+                ★ {f.name} · {kindById(f.kind)?.label ?? ""}
+              </option>
             ))}
-          </div>
-        </section>
-      )}
+          </select>
+        )}
+      </section>
 
       <Hitlist
         items={hitlist}

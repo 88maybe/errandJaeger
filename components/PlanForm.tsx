@@ -45,8 +45,8 @@ type Props = {
 };
 
 const INFO = {
-  make: "Make my plan: plan for the start time I choose.",
-  now: "Leave now: plan starting this minute, with live train times.",
+  make: "Plan ahead: plan for the start time you pick above.",
+  now: "Go now: start the route this minute, with live train times.",
 };
 
 export default function PlanForm({ initial, onSubmit, start, onStart, usingLocation, hitlistCount, busy = false, busyText = "Working…", onClearHitlist }: Props) {
@@ -101,7 +101,7 @@ export default function PlanForm({ initial, onSubmit, start, onStart, usingLocat
     applyParsed(parsed);
     setReadNote(
       fromAi && hasAnything(fromAi)
-        ? "I filled in the choices below. Please check them, then press Make my plan."
+        ? "I filled in the choices below. Please check them, then press Plan ahead."
         : aiSlow
           ? "The AI helper took too long, so I filled in what I could with simple matching. Please check the choices below."
           : "I filled in what I could with simple matching. Please check the choices below.",
@@ -209,7 +209,7 @@ export default function PlanForm({ initial, onSubmit, start, onStart, usingLocat
           </p>
         )}
         {!hasSomething && <p className="why-disabled">Pick at least one thing above, or add places from the map, to make a plan.</p>}
-        {hasSomething && !startHHMM && <p className="why-disabled">Choose a start time, or press Leave now.</p>}
+        {hasSomething && !startHHMM && <p className="why-disabled">Choose a start time, or press Go now.</p>}
 
         <div className="action-row">
           <button type="submit" className="btn btn-primary" disabled={!ready || busy} aria-busy={busy}>
@@ -218,10 +218,10 @@ export default function PlanForm({ initial, onSubmit, start, onStart, usingLocat
                 <Spinner /> Working…
               </>
             ) : (
-              "Make my plan"
+              "Plan ahead"
             )}
           </button>
-          <InfoButton id="info-make" open={info === "make"} label="What does Make my plan do?" onToggle={() => setInfo(info === "make" ? null : "make")} />
+          <InfoButton id="info-make" open={info === "make"} label="What does Plan ahead do?" onToggle={() => setInfo(info === "make" ? null : "make")} />
         </div>
         {info === "make" && (
           <p id="info-make" className="info-line">
@@ -231,9 +231,9 @@ export default function PlanForm({ initial, onSubmit, start, onStart, usingLocat
 
         <div className="action-row">
           <button type="button" className="btn btn-secondary" disabled={!hasSomething || busy} onClick={() => onSubmit({ needs, startHHMM, leaveNow: true, loop, calm, bingo, start })}>
-            Leave now
+            Go now
           </button>
-          <InfoButton id="info-now" open={info === "now"} label="What does Leave now do?" onToggle={() => setInfo(info === "now" ? null : "now")} />
+          <InfoButton id="info-now" open={info === "now"} label="What does Go now do?" onToggle={() => setInfo(info === "now" ? null : "now")} />
         </div>
         {info === "now" && (
           <p id="info-now" className="info-line">

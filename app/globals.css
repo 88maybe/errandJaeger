@@ -3049,3 +3049,409 @@ button:disabled {
 .cat-group-btn::before {
   flex: none;
 }
+
+/* =========================================================
+   Round: text fixes, Home rows, app bar, directions
+   ========================================================= */
+.option-wrap {
+  cursor: default;
+}
+.option-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s2);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.dep-more {
+  font-size: var(--text-sm);
+  align-self: center;
+}
+.hashtags {
+  margin: var(--s1) 0 0;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--clay);
+}
+.colour-legend {
+  list-style: none;
+  margin: var(--s5) 0 0;
+  padding: var(--s3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2) var(--s4);
+  justify-content: center;
+  border-top: 1.5px solid var(--sand);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+.colour-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+.legend-errands {
+  background: var(--errands);
+}
+.legend-treats {
+  background: var(--treats);
+}
+.legend-wellbeing {
+  background: var(--wellbeing);
+}
+.legend-warn {
+  background: var(--warn);
+}
+.last-visited {
+  list-style: none;
+  margin: var(--s3) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s2);
+}
+.last-visited .card {
+  margin: 0;
+  display: grid;
+  gap: 2px;
+  border-left: 6px solid var(--group-colour, var(--sand));
+}
+.last-visited .soft {
+  margin: 0;
+}
+.last-errands {
+  --group-colour: var(--errands);
+}
+.last-treats {
+  --group-colour: var(--treats);
+}
+.last-wellbeing {
+  --group-colour: var(--wellbeing);
+}
+.last-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--group-colour);
+}
+/* Map credit: its own line under the map, never on top of controls */
+.map-credit {
+  display: none;
+}
+.map-attrib {
+  margin: 0;
+  padding: 3px var(--s3);
+  font-size: 0.72rem;
+  line-height: 1.3;
+  color: var(--ink-soft);
+  background: var(--paper);
+  border-bottom: 1px solid var(--sand);
+}
+.map-attrib a {
+  color: inherit;
+}
+/* Distance and location: a row of their own below the map */
+.map-tools {
+  position: static;
+  padding: var(--s2) var(--s3) 0;
+  align-items: center;
+  flex-wrap: wrap;
+  pointer-events: auto;
+}
+.map-tools .radius,
+.map-tools .locate-btn {
+  box-shadow: none;
+}
+.go-map .map-attrib {
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+.last-label {
+  color: var(--ink-soft);
+}
+.fav-select {
+  width: 100%;
+  min-height: 48px;
+  margin-top: var(--s2);
+  padding: 0 var(--s3);
+  border: 1.5px solid var(--sand);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+}
+/* App bar: big pixel wordmark on the landing page, a thin bar with a small pixel logo elsewhere */
+.app-bar {
+  position: relative;
+  margin: calc(-1 * var(--s5)) calc(-1 * var(--s4)) var(--s4);
+  padding: var(--s3) var(--s4);
+  background: var(--paper);
+  border-bottom: 1.5px solid var(--sand);
+}
+.app-bar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1.5px;
+  height: 4px;
+  background: linear-gradient(90deg, var(--errands) 0 25%, var(--treats) 25% 50%, var(--wellbeing) 50% 75%, var(--warn) 75%);
+}
+.wordmark {
+  margin: 0;
+  font-family: var(--font-pixel), var(--font-head);
+  font-weight: 700;
+  font-size: clamp(2.1rem, 10.5vw, 2.75rem);
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  text-shadow: 3px 3px 0 var(--sand);
+}
+.wordmark::after {
+  display: none !important;
+}
+.wm-a {
+  color: var(--teal-deep);
+}
+.wm-b {
+  color: var(--clay);
+}
+:root[data-theme="dark"] .wm-a {
+  color: var(--teal);
+}
+:root[data-theme="dark"] .wordmark {
+  text-shadow: 3px 3px 0 #000;
+}
+.app-bar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-top: var(--s2);
+}
+.app-bar-row p {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ink-soft);
+}
+.app-bar-thin {
+  padding: var(--s2) var(--s4);
+}
+.mini-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: 36px;
+  text-decoration: none;
+  color: var(--ink);
+  font-family: var(--font-pixel), var(--font-head);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+/* Directions: a clear From -> To header */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.leg-card {
+  position: relative;
+  display: grid;
+  gap: var(--s1);
+  padding: var(--s4);
+  border: 1.5px solid var(--sand);
+  border-left: 6px solid var(--errands);
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+.stop-pill {
+  justify-self: start;
+  padding: 2px var(--s3);
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.leg-end {
+  display: grid;
+}
+.leg-end small {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+.leg-end strong {
+  font-size: 1.3rem;
+  line-height: 1.25;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.leg-arrow {
+  font-size: 1.4rem;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--teal);
+  padding-left: 2px;
+}
+/* Compact Transit / Walk / Car switcher */
+.mode-switch {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: var(--s3);
+  padding: 3px;
+  gap: 3px;
+  border: 1.5px solid var(--sand);
+  border-radius: 999px;
+  background: var(--paper);
+}
+.mode-switch button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mode-switch button strong {
+  font-weight: 400;
+}
+.mode-switch button[aria-pressed="true"] {
+  background: var(--teal-deep);
+  color: var(--on-accent);
+}
+:root[data-theme="dark"] .mode-switch button[aria-pressed="true"] {
+  background: var(--teal);
+  color: #0f1514;
+}
+.mode-switch button:disabled {
+  color: var(--ink-soft);
+  opacity: 0.6;
+}
+/* Map toggle */
+.map-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: 40px;
+  margin-top: var(--s3);
+  padding: 0 var(--s3);
+  border: 1.5px solid var(--teal-deep);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--teal-deep);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+:root[data-theme="dark"] .map-toggle {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+.map-toggle[aria-expanded="false"] {
+  background: var(--teal-deep);
+  color: var(--on-accent);
+}
+.map-icon {
+  font-size: 1.05rem;
+}
+.go-map {
+  margin-top: var(--s2);
+}
+/* Walking: one continuous flow */
+.walk-flow {
+  list-style: none;
+  margin: var(--s4) 0 0;
+  padding: 0;
+}
+.wf-point,
+.wf-walk {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: var(--s3);
+  align-items: start;
+}
+.wf-point > div,
+.wf-walk > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.wf-point small {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+.wf-point strong {
+  font-size: 1.15rem;
+  overflow-wrap: anywhere;
+}
+.wf-walk {
+  padding: var(--s2) 0;
+}
+.wf-walk .soft {
+  margin: 0;
+}
+.wf-dot {
+  justify-self: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 4px;
+  border-radius: 50%;
+  border: 3px solid var(--teal-deep);
+  background: var(--paper);
+}
+.wf-stop {
+  width: 28px;
+  height: 28px;
+  margin-top: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: var(--errands);
+  color: var(--on-accent);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.wf-line {
+  justify-self: center;
+  align-self: stretch;
+  width: 0;
+  min-height: 48px;
+  border-left: 4px dotted var(--ink-soft);
+}
+/* A shorter map on Directions, so the choices stay in reach */
+.go-map .map-box {
+  height: 34vh;
+  min-height: 220px;
+  max-height: 360px;
+}
