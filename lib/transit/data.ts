@@ -156,7 +156,15 @@ export const PLATFORMS: Record<string, PlatformNames> = {
   },
 };
 
+// Names the MBTA uses for some platforms that don't help a rider ("Exit Only", "Track 1", "Red Line").
+const UNHELPFUL_PLATFORM = /exit only|^track\b|^(red|blue|orange|green) line$/i;
+
 export function platformName(line: Line, stationId: string, toward: "first" | "last"): string {
+  const name = rawPlatformName(line, stationId, toward);
+  return UNHELPFUL_PLATFORM.test(name) ? (toward === "first" ? line.towardFirst : line.towardLast) : name;
+}
+
+function rawPlatformName(line: Line, stationId: string, toward: "first" | "last"): string {
   // Red and Blue platforms are named after the terminal they head to (checked by npm run sync:terminals).
   if (line.family === "Red Line" || line.family === "Blue Line") return toward === "first" ? line.towardFirst : line.towardLast;
   const table = PLATFORMS[line.family === "Orange Line" ? "orange" : "green"][toward];

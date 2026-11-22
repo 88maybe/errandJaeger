@@ -3,15 +3,17 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import BrainDump from "@/components/BrainDump";
 import Hitlist from "@/components/Hitlist";
 import MapView from "@/components/MapView";
 import NearbySheet from "@/components/NearbySheet";
 import PlanForm, { type FormValues } from "@/components/PlanForm";
 import { buildCard } from "@/lib/bingo";
 import { DEFAULT_RADIUS, DOWNTOWN, GROUPS, inArea, kindById, KINDS, RADII, type KindId } from "@/lib/nearby/categories";
-import { fetchNearby, isMission, measure, toPlace, type Found } from "@/lib/nearby/client";
+import { fetchNearby, isMission, measure, openStatus, toPlace, type Found } from "@/lib/nearby/client";
 import type { NearbyPlace } from "@/lib/nearby/types";
 import { isLocationOn, setLocationOn } from "@/lib/location";
+import { applyStim } from "@/lib/stim";
 import { planHitlist, planRoute } from "@/lib/planner";
 import { PLACES } from "@/lib/planner/places";
 import { todayAtNY } from "@/lib/planner/time";
@@ -71,7 +73,7 @@ export default function Home() {
   const [message, setMessage] = useState<string | null>(null);
   const [checking, setChecking] = useState(false); // looking up real train times
   // A finished new plan waiting for you to say "replace my current one".
-  const [waiting, setWaiting] = useState<{ plan: RoutePlan; mode: "normal" | "calm"; train?: Departures; leftNow?: boolean; directions?: boolean } | null>(null);
+  const [waiting, setWaiting] = useState<{ plan: RoutePlan; mode: "normal" | "calm"; train?: Departures; leftNow?: boolean; directions?: boolean; bingo?: boolean } | null>(null);
 
   // Where you start: a picked start point, or your live location (never asked for until you press the button).
   const [start, setStart] = useState<Point>(DOWNTOWN);
@@ -253,6 +255,19 @@ export default function Home() {
     setTimeout(() => setJustAdded((cur) => (cur === p.id ? null : cur)), 900);
   }
 
+  // Brain dump "Add nearest": the closest place of that kind that isn't closed (your favorites first).
+  async function addNearest(k: KindId): Promise<string> {
+    const res = await fetchNearby(k, searchFrom, radius);
+    const list = measure(res?.places ?? localFallback(k), searchFrom, radius).filter((p) => !hitIds.includes(p.id));
+    const now = new Date();
+    const usable = list.filter((p) => openStatus(p, now).tone !== "closed");
+    const pick = usable.find((p) => favIds.includes(p.id)) ?? usable[0];
+    if (!pick) return list.length ? "Everything nearby looks closed now. Tap Choose to look anyway." : "Nothing found nearby. Try a bigger distance.";
+    if (hitlist.length >= MAX_HITLIST) return `Your hitlist is full (${MAX_HITLIST} places).`;
+    toggleHit(pick);
+    return `Added ${pick.name}, about ${pick.walkMin} min walk (estimate).`;
+  }
+
   function pickFromMap(id: string) {
     const p = found.find((f) => f.id === id);
     if (p) toggleHit(p);
@@ -276,16 +291,16 @@ export default function Home() {
 
   // ---- Planning ----
   // A plan made from the hitlist opens the directions (ways to get to the first stop); otherwise the plan.
-  async function saveAndGo(plan: RoutePlan, mode: "normal" | "calm", train?: Departures, leftNow?: boolean, directions?: boolean) {
+  async function saveAndGo(plan: RoutePlan, mode: "normal" | "calm", train?: Departures, leftNow?: boolean, directions?: boolean, bingo = true) {
     const id = Date.now().toString(36);
-    await saveOuting({ id, createdAt: new Date().toISOString(), mode, plan, card: buildCard(plan, id), ticked: [], step: 0, train, leftNow });
+    await saveOuting({ id, createdAt: new Date().toISOString(), mode, plan, card: buildCard(plan, id), ticked: [], step: 0, train, leftNow, bingo });
     updateHitlist([]); // the hitlist became this plan
     router.push(directions ? "/go" : "/plan");
   }
 
   async function makePlan(values: FormValues) {
     // Remember the choices, so coming back keeps them. (Your live location is never saved.)
-    const nextPrefs: Prefs = { ...(prefs as Prefs), needs: values.needs, loop: values.loop, calm: values.calm, start, stim, radius, includeAddOns };
+    const nextPrefs: Prefs = { ...(prefs as Prefs), needs: values.needs, loop: values.loop, calm: values.calm, bingo: values.bingo, start, stim, radius, includeAddOns };
     setPrefs(nextPrefs);
     await savePrefs(nextPrefs);
     setWaiting(null);
@@ -340,10 +355,10 @@ export default function Home() {
 
     // A plan is already in progress: ask before replacing it.
     if (current) {
-      setWaiting({ plan, mode, train, leftNow: !!values.leaveNow, directions: fromHitlist });
+      setWaiting({ plan, mode, train, leftNow: !!values.leaveNow, directions: fromHitlist, bingo: values.bingo });
       return;
     }
-    await saveAndGo(plan, mode, train, !!values.leaveNow, fromHitlist);
+    await saveAndGo(plan, mode, train, !!values.leaveNow, fromHitlist, values.bingo);
   }
 
   const kindLabel = kind ? kindById(kind)?.label : "";
@@ -361,7 +376,7 @@ export default function Home() {
         <Link href="/plan" className="card resume">
           <strong>You have a plan in progress</strong>
           <span>
-            {current.plan.stops.length} stops from {current.plan.start.name}. Continue
+            {current.plan.stops.length} {current.plan.stops.length === 1 ? "stop" : "stops"} from {current.plan.start.name}. Continue
           </span>
         </Link>
       )}
@@ -374,7 +389,7 @@ export default function Home() {
             <button type="button" className="btn btn-secondary" onClick={() => router.push("/plan")}>
               Keep my current plan
             </button>
-            <button type="button" className="btn btn-primary" onClick={() => saveAndGo(waiting.plan, waiting.mode, waiting.train, waiting.leftNow, waiting.directions)}>
+            <button type="button" className="btn btn-primary" onClick={() => saveAndGo(waiting.plan, waiting.mode, waiting.train, waiting.leftNow, waiting.directions, waiting.bingo)}>
               Replace it
             </button>
           </div>
@@ -433,12 +448,15 @@ export default function Home() {
         </p>
       )}
 
+      <BrainDump onAddNearest={addNearest} onShow={(k) => search(k)} />
+
       <label className="toggle stim-toggle">
         <input
           type="checkbox"
           checked={stim}
           onChange={(e) => {
             setStim(e.target.checked);
+            applyStim(e.target.checked);
             rememberSettings({ stim: e.target.checked });
           }}
         />

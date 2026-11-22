@@ -5,27 +5,43 @@
    ========================================================= */
 
 :root {
-  /* Colour */
-  --cream: #fbf6ee; /* page background */
-  --paper: #fffdf9; /* cards */
-  --sand: #e6dac8; /* borders, quiet fills */
-  --ink: #2a2622; /* main text */
-  --ink-soft: #5c534a; /* secondary text */
-  --teal: #1f5f5b; /* main action, "done" */
-  --teal-deep: #174744;
-  --sage: #dcebe5; /* soft teal fill */
-  --clay: #a64a28; /* warm accent, focus */
-  --clay-soft: #f6e3d8;
-  --gold: #f0c04a; /* win highlight */
+  color-scheme: dark;
+  /* Colour: a dark, calm base (near-black with a slight green tint).
+     Names are kept from the first design so every component follows along. */
+  --cream: #0b120f; /* page background */
+  --paper: #131c18; /* cards */
+  --paper-2: #1a2520; /* raised cards, sheets */
+  --sand: #2a3832; /* borders, quiet fills */
+  --ink: #ecf2ee; /* main text */
+  --ink-soft: #a9b8b0; /* secondary text (still high contrast on the dark base) */
+  --on-accent: #06110c; /* text on a bright accent */
+
+  /* Accents. Stim mode off (default): muted. Stim mode on: brighter (see [data-stim="on"] below). */
+  --teal: #74c9a3; /* main action, "done" */
+  --teal-deep: #5bb38c;
+  --sage: #1b2f26; /* soft accent fill */
+  --clay: #e39a76; /* warm accent */
+  --clay-soft: #2f211a;
+  --gold: #e3c463; /* win highlight */
+  --wellbeing: #9cc77c;
+  --warn-bg: #3b1d14; /* loud warnings */
+  --warn-ink: #ffd9c9;
+  --sched-bg: #2a2417; /* "scheduled" chips */
+
+  /* Boston subway colours (official), used for line chips and route lines */
+  --gl: #00843d;
+  --rl: #da291c;
+  --ol: #ed8b00;
+  --bl: #003da5;
 
   /* Type scale */
-  --text-sm: 0.875rem;
+  --text-sm: 0.9375rem;
   --text-base: 1.125rem;
   --text-lg: 1.375rem;
   --text-xl: 1.75rem;
   --text-2xl: 2.25rem;
   --font-text: var(--font-body), system-ui, sans-serif;
-  --font-head: var(--font-display), Georgia, serif;
+  --font-head: var(--font-body), system-ui, sans-serif; /* bold Atkinson Hyperlegible for headings too */
 
   /* Spacing (4px steps) */
   --s1: 0.25rem;
@@ -37,6 +53,17 @@
 
   --radius: 16px;
   --tap: 56px; /* minimum tap target height */
+}
+
+/* Stim mode on: brighter, livelier accents */
+:root[data-stim="on"] {
+  --teal: #3ee6a0;
+  --teal-deep: #22c985;
+  --sage: #143826;
+  --clay: #ff7b47;
+  --clay-soft: #3a1d12;
+  --gold: #ffd43b;
+  --wellbeing: #b3ec6a;
 }
 
 * {
@@ -62,6 +89,8 @@ body {
 h1,
 h2 {
   font-family: var(--font-head);
+  font-weight: 700;
+  letter-spacing: -0.01em;
   line-height: 1.2;
   margin: 0;
 }
@@ -199,7 +228,7 @@ p {
 
 .btn-primary {
   background: var(--teal);
-  color: #ffffff;
+  color: var(--on-accent);
 }
 
 .btn-primary:hover {
@@ -240,7 +269,7 @@ p {
 .chip[aria-pressed="true"] {
   background: var(--teal);
   border-color: var(--teal);
-  color: #ffffff;
+  color: var(--on-accent);
 }
 
 .time-input {
@@ -477,7 +506,7 @@ p {
 
 .step-card.transit {
   border-color: var(--clay);
-  background: #fff3d6;
+  background: var(--sched-bg);
 }
 
 .step-time {
@@ -553,11 +582,11 @@ p {
   background: var(--teal);
   border-color: var(--teal);
   border-style: solid;
-  color: #ffffff;
+  color: var(--on-accent);
 }
 
 .square.done .square-tag {
-  color: #cfe5df;
+  color: var(--on-accent);
 }
 
 .square.free {
@@ -738,8 +767,8 @@ p {
 
 .alert-loud {
   border: 3px solid var(--clay);
-  background: #fde8df;
-  color: #5a1f0c;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
   border-radius: 14px;
   padding: var(--s3) var(--s4);
 }
@@ -759,8 +788,8 @@ p {
   padding: var(--s2) var(--s3);
   border: 2px solid var(--clay);
   border-radius: 10px;
-  background: #fde8df;
-  color: #5a1f0c;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
   font-weight: 700;
 }
 
@@ -768,7 +797,7 @@ p {
   border: 2px solid var(--sand);
   border-radius: 14px;
   padding: var(--s2) var(--s4);
-  background: #fff;
+  background: var(--paper);
 }
 
 .alerts summary {
@@ -795,18 +824,18 @@ p {
   font-weight: 700;
   border: 2px solid var(--ink-soft);
   color: var(--ink);
-  background: #fff;
+  background: var(--paper);
   vertical-align: middle;
 }
 .tchip-live {
   background: var(--teal);
   border-color: var(--teal);
-  color: #fff;
+  color: var(--on-accent);
 }
 .tchip-scheduled {
-  background: #fff3d6;
+  background: var(--sched-bg);
   border-color: var(--clay);
-  color: #5a1f0c;
+  color: var(--warn-ink);
 }
 .tchip-estimate {
   background: var(--cream);
@@ -865,7 +894,7 @@ p {
   padding: 1px 8px;
   border-radius: 6px;
   background: var(--clay);
-  color: #fff;
+  color: var(--on-accent);
   font-size: var(--text-sm);
   font-weight: 700;
 }
@@ -985,7 +1014,7 @@ p {
   --group-colour: var(--clay);
 }
 .cat-wellbeing {
-  --group-colour: #4f7a2f;
+  --group-colour: var(--wellbeing);
 }
 .cat-chip[aria-pressed="true"] {
   background: var(--ink);
@@ -1078,7 +1107,7 @@ p {
   --group-colour: var(--clay);
 }
 .pin-wellbeing {
-  --group-colour: #4f7a2f;
+  --group-colour: var(--wellbeing);
 }
 .pin-added {
   outline: 3px solid var(--gold);
@@ -1122,7 +1151,8 @@ p {
   .pulse-ring {
     animation: pulse-ring 1.4s ease-out 2;
   }
-  .you-dot {
+  /* Pulsing only in Stim mode; calm mode stays still. */
+  :root[data-stim="on"] .you-dot {
     animation: you-pulse 2.4s ease-in-out infinite;
   }
   .sheet-in {
@@ -1135,7 +1165,10 @@ p {
     animation: fade-in 0.35s ease-out both;
   }
   .hit-new {
-    animation: hit-in 0.5s ease-out;
+    animation: fade-in 0.4s ease-out;
+  }
+  :root[data-stim="on"] .hit-new {
+    animation: hit-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   @keyframes pin-pop {
     from {
@@ -1189,13 +1222,17 @@ p {
     }
   }
   @keyframes hit-in {
-    from {
+    0% {
       background: var(--gold);
-      transform: translateX(-12px);
+      color: var(--on-accent);
+      transform: scale(0.85) translateY(10px);
     }
-    to {
+    60% {
+      transform: scale(1.04) translateY(0);
+    }
+    100% {
       background: var(--paper);
-      transform: translateX(0);
+      transform: scale(1);
     }
   }
 }
@@ -1319,7 +1356,7 @@ p {
   border: 1.5px solid var(--sand);
   background: var(--paper);
   font-size: 1.25rem;
-  color: #b8860b;
+  color: var(--gold);
   cursor: pointer;
 }
 .btn.btn-small {
@@ -1733,4 +1770,327 @@ p {
   height: 12px;
   background: #fff;
   border: 3px solid var(--dot, var(--teal));
+}
+
+
+/* =========================================================
+   Visual system (Batch C): dark, calm base; subway colours as accents
+   ========================================================= */
+body {
+  -webkit-font-smoothing: antialiased;
+}
+a {
+  color: var(--teal);
+}
+.page-title {
+  font-size: var(--text-xl);
+  color: var(--ink);
+}
+.brand h1 {
+  color: var(--teal);
+}
+.card,
+.stat,
+.option-card,
+.summary-card,
+.place-card,
+.hit {
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset;
+}
+.sheet {
+  background: var(--paper-2);
+  border-color: var(--sand);
+  box-shadow: 0 -8px 24px rgb(0 0 0 / 0.5);
+}
+.sheet-head {
+  background: var(--paper-2);
+}
+.place-card {
+  background: var(--paper);
+}
+.cat-chip {
+  background: var(--paper-2);
+  color: var(--ink);
+  border-color: var(--sand);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.45);
+}
+.cat-chip[aria-pressed="true"] {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: var(--on-accent);
+}
+.cat-chip[aria-pressed="true"]::before {
+  background: var(--on-accent);
+}
+.cat-group-label {
+  background: rgb(11 18 15 / 0.8);
+  color: var(--ink-soft);
+}
+.radius,
+.locate-btn {
+  background: var(--paper-2);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.45);
+}
+.radius button {
+  color: var(--ink);
+}
+.radius button[aria-pressed="true"] {
+  color: var(--on-accent);
+}
+.map-box {
+  background: #101915;
+}
+.map-credit {
+  position: absolute;
+  left: 6px;
+  bottom: 2px;
+  z-index: 4;
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+  background: rgb(11 18 15 / 0.7);
+  padding: 0 4px;
+  border-radius: 4px;
+  pointer-events: none;
+}
+.map-note {
+  bottom: auto;
+  top: 60px;
+  background: var(--paper-2);
+}
+/* MapLibre's own attribution box, in dark */
+.maplibregl-ctrl-attrib,
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  background: rgb(19 28 24 / 0.9) !important;
+  color: var(--ink-soft);
+}
+.maplibregl-ctrl-attrib a {
+  color: var(--ink);
+}
+.maplibregl-ctrl-attrib-button {
+  filter: invert(1);
+}
+.bottom-nav {
+  background: var(--paper);
+  border-top-color: var(--sand);
+}
+.bottom-nav a[aria-current="page"] {
+  color: var(--teal);
+}
+.line-chip {
+  min-width: 2.4em;
+  text-align: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.18);
+  letter-spacing: 0.02em;
+}
+.mode-tab {
+  background: var(--paper);
+}
+.mode-tab strong {
+  font-size: var(--text-lg);
+}
+.dep-chip {
+  background: var(--sched-bg);
+  border-color: transparent;
+}
+.dep-live {
+  background: var(--sage);
+  border-color: var(--teal);
+}
+.time-bar {
+  height: 14px;
+  gap: 3px;
+  background: transparent;
+}
+.time-bar > span {
+  border-radius: 4px;
+}
+.bar-walk {
+  background: repeating-linear-gradient(90deg, var(--ink-soft) 0 5px, transparent 5px 9px);
+}
+.bar-wait {
+  background: var(--sand);
+}
+.bar-ride {
+  background: var(--teal);
+}
+.route-start {
+  background: var(--teal);
+}
+.you-dot {
+  background: #4c9bff;
+}
+input,
+textarea,
+select {
+  background: var(--paper);
+  color: var(--ink);
+  border-color: var(--sand);
+}
+::placeholder {
+  color: var(--ink-soft);
+  opacity: 0.8;
+}
+/* Stim mode off: muted line chips (still the right colours, a little softer) */
+:root[data-stim="off"] .line-chip {
+  filter: saturate(0.8);
+}
+
+/* ---------- Profile: rank, badges ---------- */
+.rank-card {
+  margin-top: var(--s4);
+  padding: var(--s4);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, var(--sage), var(--paper) 70%);
+  border: 1.5px solid var(--teal);
+  display: grid;
+  gap: var(--s1);
+}
+.rank-card .soft {
+  margin: 0;
+}
+.rank-level {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--teal);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.rank-name {
+  font-size: var(--text-xl);
+  line-height: 1.2;
+}
+.rank-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--sand);
+  overflow: hidden;
+  margin-top: var(--s2);
+}
+.rank-bar span {
+  display: block;
+  height: 100%;
+  background: var(--teal);
+  border-radius: 5px;
+}
+.rank-up {
+  margin-top: var(--s3);
+  font-weight: 700;
+  color: var(--gold);
+}
+.soft-inline {
+  font-family: var(--font-text);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+.badges {
+  list-style: none;
+  margin: var(--s3) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s2);
+}
+.badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+  padding: var(--s3) var(--s2);
+  border-radius: var(--radius);
+  border: 1.5px dashed var(--sand);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+.badge strong {
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+.badge small {
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
+.badge-icon {
+  font-size: 1.6rem;
+  line-height: 1.2;
+  opacity: 0.45;
+}
+.badge.earned {
+  border-style: solid;
+  border-color: var(--gold);
+  color: var(--ink);
+  background: var(--paper);
+}
+.badge.earned .badge-icon {
+  opacity: 1;
+  color: var(--gold);
+}
+.stat strong {
+  font-family: var(--font-head);
+  color: var(--teal);
+}
+
+/* ---------- Brain dump ---------- */
+.braindump {
+  margin-top: var(--s4);
+  padding: var(--s3) var(--s4);
+  border: 1.5px solid var(--sand);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+.braindump summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  cursor: pointer;
+}
+.braindump textarea {
+  width: 100%;
+  margin-top: var(--s2);
+  padding: var(--s3);
+  border: 1.5px solid var(--sand);
+  border-radius: 12px;
+  font: inherit;
+}
+.dump-chips {
+  list-style: none;
+  margin: var(--s3) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s2);
+}
+.dump-chip {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s3);
+  border-radius: var(--radius);
+  background: var(--paper-2);
+  border: 1.5px solid var(--sand);
+}
+.dump-main {
+  display: flex;
+  flex-direction: column;
+}
+.dump-main .soft {
+  margin: 0;
+}
+.dump-actions {
+  display: flex;
+  gap: var(--s2);
+  align-items: center;
+}
+.dump-x {
+  margin-left: auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid var(--sand);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
 }

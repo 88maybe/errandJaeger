@@ -76,6 +76,14 @@ function nameFor(kind: Kind, tags: Record<string, string>): string | null {
   return null; // unnamed places are hard to find, so we leave them out
 }
 
+// Libraries: only ones anyone can walk into (public branches), not university, school, law or private ones.
+const NOT_PUBLIC = /universit|college|school|academy|law|institute|hospital|seminary|athenaeum|archive|little free|society|club|church|private/i;
+export function isPublicLibrary(name: string, tags: Record<string, string> = {}): boolean {
+  if (tags.library === "public" || /public library|branch library|\bbpl\b/i.test(`${name} ${tags.operator ?? ""}`)) return true;
+  if (tags.library && tags.library !== "public") return false; // academic, research, ...
+  return !NOT_PUBLIC.test(`${name} ${tags.operator ?? ""}`);
+}
+
 // OSM elements -> our places (named, public, with a position). Duplicates (same name and spot) are dropped.
 export function toNearby(kind: Kind, elements: OsmElement[]): NearbyPlace[] {
   const seen = new Set<string>();
@@ -86,6 +94,7 @@ export function toNearby(kind: Kind, elements: OsmElement[]): NearbyPlace[] {
     const name = nameFor(kind, tags);
     if (typeof lat !== "number" || typeof lng !== "number" || !name) return [];
     if (tags.access === "private" || tags.access === "no") return [];
+    if (kind.id === "library" && !isPublicLibrary(name, tags)) return [];
     const key = `${name}|${lat.toFixed(4)}|${lng.toFixed(4)}`;
     if (seen.has(key)) return [];
     seen.add(key);

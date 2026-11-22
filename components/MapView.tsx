@@ -8,8 +8,9 @@ import { groupOf, type Found } from "@/lib/nearby/client";
 // The map. MapLibre with a free, no-key vector style (OpenFreeMap). If that style can't load, plain OSM tiles.
 // Stim mode on = a livelier, more colourful style and a pulsing ring; off = a calmer pale style and fades only.
 
-const STYLE_CALM = "https://tiles.openfreemap.org/styles/positron";
-const STYLE_LIVELY = "https://tiles.openfreemap.org/styles/liberty";
+// Dark styles to match the app: plain dark when Stim mode is off, the more colourful "fiord" when it is on.
+const STYLE_CALM = "https://tiles.openfreemap.org/styles/dark";
+const STYLE_LIVELY = "https://tiles.openfreemap.org/styles/fiord";
 const RASTER: StyleSpecification = {
   version: 8,
   sources: {
@@ -106,7 +107,7 @@ export default function MapView(props: Props) {
           style: stim ? STYLE_LIVELY : STYLE_CALM,
           center: [center.lng, center.lat],
           zoom: 14,
-          attributionControl: { compact: true },
+          attributionControl: { compact: true, customAttribution: "© OpenStreetMap contributors" },
           dragRotate: false,
           pitchWithRotate: false,
         });
@@ -120,10 +121,8 @@ export default function MapView(props: Props) {
           map.setStyle(RASTER);
         };
         timer = setTimeout(toRaster, STYLE_TIMEOUT_MS);
-        map.on("error", () => {
-          if (!loaded && !map.isStyleLoaded()) toRaster(); // the vector style failed before it loaded
-        });
-        map.on("load", () => {
+        // Fall back only if the style itself never loads (a missing tile here and there is normal).
+        map.once("style.load", () => {
           loaded = true;
           clearTimeout(timer);
         });
@@ -153,6 +152,15 @@ export default function MapView(props: Props) {
     const { center: c, radiusM: r } = live.current;
     // Route lines: rides solid in the line's colour, walks as dots.
     if (!map.getSource("route")) map.addSource("route", { type: "geojson", data: routeData(live.current.routeLines) });
+    if (!map.getLayer("route-casing"))
+      map.addLayer({
+        id: "route-casing",
+        type: "line",
+        source: "route",
+        filter: ["==", ["get", "dotted"], false],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#ecf2ee", "line-width": 9, "line-opacity": 0.55 },
+      });
     if (!map.getLayer("route-ride"))
       map.addLayer({
         id: "route-ride",
@@ -345,6 +353,7 @@ export default function MapView(props: Props) {
     <div className="map-box">
       <div ref={box} className="map-canvas" aria-label="Map of places near you" role="region" />
       {raster && <span className="map-note">Simple map (the detailed one didn&apos;t load)</span>}
+      <span className="map-credit">© OpenStreetMap contributors</span>
     </div>
   );
 }

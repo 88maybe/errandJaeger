@@ -7,7 +7,8 @@ import { formatNY } from "@/lib/planner/time";
 import { CHANGE_WALK_MIN } from "@/lib/transit/route";
 import { LINE_COLOUR, familyOf, rideName } from "@/lib/transit/look";
 import { towardText } from "@/lib/transit/text";
-import { DepChips, leaveInText, LineChip } from "./Bits";
+import LineChip from "@/components/LineChip";
+import { DepChips, leaveInText } from "./Bits";
 import type { ViewOption } from "./types";
 
 type Props = {
@@ -118,7 +119,7 @@ export default function RouteView({ option, segments, walks, destName, now, onBa
                 <div>
                   <strong>{walkTitle(seg, destName)}</strong>
                   <span className="soft">
-                    About {w ? Math.max(seg.leg.durationMin, w.durationMin) : seg.leg.durationMin} min (estimate)
+                    About {seg.leg.durationMin} min (estimate)
                     {w ? `, ${w.distanceM < 950 ? `${Math.round(w.distanceM / 10) * 10} m` : `${(w.distanceM / 1000).toFixed(1)} km`}` : ""}
                   </span>
                   {seg.entrance && (

@@ -1,6 +1,7 @@
 // The ONE place the app saves and loads things.
-// Today it uses the browser's localStorage. Later (M4) only this file changes to talk to a database.
-// Every function is async on purpose, so swapping in a database will not change the pages.
+// Everything is kept in the browser (localStorage). If the server has a database (DATABASE_URL), finished
+// outings are ALSO saved there under an anonymous device id, and read back and merged. Any database problem
+// is ignored: the browser copy always works on its own.
 import type { Square } from "./bingo";
 import type { NearbyPlace } from "./nearby/types";
 import { KENMORE } from "./planner/places";
@@ -16,6 +17,7 @@ export type Prefs = {
   stim?: boolean; // Stim mode: true = lively map and side quests, false = fewer markers, gentle fades
   radius?: number; // map search radius in metres
   includeAddOns?: boolean; // Stim mode off: also visit treats and wellbeing places (after the errands)
+  bingo?: boolean; // make a bingo card for new trips (default yes)
 };
 
 // One place on your hitlist (tap a place on the map to add it). Errands are missions; the rest are add-ons.
@@ -32,6 +34,7 @@ export type Outing = {
   step: number; // which step you are on in the one-step view
   finishedAt?: string; // set when you press "Finish outing"
   leftNow?: boolean; // started with "Leave now" (only then do ticks re-time the plan)
+  bingo?: boolean; // false = no bingo on this trip (missing = bingo on)
   train?: Departures; // the day's real scheduled trips for the rides in this plan (used to re-time without asking again)
   rev?: number; // goes up each time the plan is re-timed (so AI wording is made again)
   // What changed the last time the plan was re-timed, in plain words, plus stops that would now be closed.
@@ -50,6 +53,7 @@ const KEYS = {
   history: "errandjaeger:v1:history", // finished outings
   favorites: "errandjaeger:v1:favorites", // starred places
   hitlist: "errandjaeger:v1:hitlist", // places picked on the map for the next plan
+  device: "errandjaeger:v1:device", // anonymous random id, only used to find this browser's outings in the database
 };
 
 const DEFAULT_PREFS: Prefs = { needs: [], loop: true, calm: false, start: KENMORE, stim: false, radius: 1000, includeAddOns: true };
@@ -91,8 +95,55 @@ export async function saveOuting(outing: Outing): Promise<void> {
   write(KEYS.outing, outing);
 }
 
-export async function getHistory(): Promise<Outing[]> {
+function localHistory(): Outing[] {
   return read<Outing[]>(KEYS.history, []);
+}
+
+// An anonymous id for this browser (random, no personal data).
+export function deviceId(): string {
+  let id = read<string | null>(KEYS.device, null);
+  if (!id || typeof id !== "string") {
+    id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : "00000000-0000-4000-8000-" + String(Date.now()).padStart(12, "0").slice(-12);
+    write(KEYS.device, id);
+  }
+  return id;
+}
+
+async function pushOuting(outing: Outing): Promise<boolean> {
+  try {
+    const res = await fetch("/api/db/outings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deviceId: deviceId(), outing }),
+      signal: AbortSignal.timeout(6000),
+    });
+    return !!(await res.json())?.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Finished outings: this browser's copy, merged with the database copy when there is one.
+export async function getHistory(): Promise<Outing[]> {
+  const local = localHistory();
+  if (typeof window === "undefined") return local;
+  try {
+    const res = await fetch(`/api/db/outings?device=${deviceId()}`, { signal: AbortSignal.timeout(3500) });
+    const data = await res.json();
+    if (!data?.ok || !Array.isArray(data.outings)) return local; // no database, or it failed: browser copy only
+    const remote = data.outings as Outing[];
+    const ids = new Set(local.map((o) => o.id));
+    const merged = [...local, ...remote.filter((o) => o && !ids.has(o.id))].sort(
+      (a, b) => Date.parse(a.finishedAt ?? a.createdAt) - Date.parse(b.finishedAt ?? b.createdAt),
+    );
+    if (merged.length !== local.length) write(KEYS.history, merged);
+    // Outings finished while the database was away: send them now (a few at a time).
+    const remoteIds = new Set(remote.map((o) => o.id));
+    for (const o of local.filter((x) => !remoteIds.has(x.id)).slice(0, 10)) void pushOuting(o);
+    return merged;
+  } catch {
+    return local;
+  }
 }
 
 // Clears the current (unfinished) outing without counting it.
@@ -105,17 +156,19 @@ export async function discardOuting(): Promise<void> {
 }
 
 // Marks the current outing as finished, moves it into history, and clears the current slot.
-// An outing with nothing ticked does NOT count: it is cleared and null is returned.
+// A bingo outing with nothing ticked does NOT count: it is cleared and null is returned.
+// (A trip without bingo counts when you press "Finish outing".)
 export async function finishOuting(): Promise<Outing | null> {
   const current = await getOuting();
   if (!current) return null;
-  if (current.ticked.length === 0) {
+  if (current.ticked.length === 0 && current.bingo !== false) {
     await discardOuting();
     return null;
   }
   const finished: Outing = { ...current, finishedAt: new Date().toISOString() };
-  write(KEYS.history, [...(await getHistory()), finished]);
+  write(KEYS.history, [...localHistory(), finished]);
   await discardOuting();
+  void pushOuting(finished); // also to the database, if there is one
   return finished;
 }
 

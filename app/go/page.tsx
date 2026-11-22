@@ -26,8 +26,8 @@ import { useOuting } from "@/lib/useOuting";
 const LIVE_MS = 30_000;
 const CLOCK_MS = 15_000;
 type LatLng = { lat: number; lng: number };
-const WALK_COLOUR = "#2a2622";
-const CAR_COLOUR = "#5c534a";
+const WALK_COLOUR = "#ecf2ee"; // light dots on the dark map
+const CAR_COLOUR = "#a9b8b0";
 
 const minuteFloor = (ms: number) => new Date(Math.floor(ms / 60000) * 60000);
 
@@ -101,6 +101,27 @@ export default function GoPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripKey, minuteKey]);
 
+  // ONE walking-time source: OSRM for every walk of every option (cached on our server), our distance estimate
+  // only if OSRM can't answer. The options list and the route steps both use these same numbers.
+  const segKey = (s: Segment) => (s.kind === "walk" ? `${s.from.lat.toFixed(4)},${s.from.lng.toFixed(4)}>${s.to.lat.toFixed(4)},${s.to.lng.toFixed(4)}` : "");
+  const baseSegs = useMemo(() => (origin && dest ? base.map((o) => segmentsOf(o.plan, origin, dest)) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [base]);
+  const askedWalks = useRef(new Set<string>());
+  useEffect(() => {
+    baseSegs.forEach((segs) =>
+      segs.forEach((s, i) => {
+        if (s.kind !== "walk") return;
+        const k = segKey(s);
+        if (askedWalks.current.has(k)) return;
+        askedWalks.current.add(k);
+        const fromPrivate = i === 0 && !!user; // your live location: rounded before it leaves the phone
+        fetchOsrm("foot", { ...s.from, private: fromPrivate }, s.to).then((r) => setSegWalks((w) => ({ ...w, [k]: r })));
+      }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseSegs]);
+
   // Real schedules: one lookup per option (it returns the whole day's trips, so re-timing later needs no new call).
   useEffect(() => {
     for (const o of base) {
@@ -150,11 +171,20 @@ export default function GoPage() {
 
   // Transit options with schedules and live times applied.
   const transit: ViewOption[] = useMemo(() => {
-    return base.map((o) => {
+    return base.map((o, idx) => {
       const entry = checks[o.key];
       const pending = entry === undefined || entry === "pending";
       const data = pending ? null : entry;
-      const plan = applyTrainData(o.plan, data);
+      // Put the OSRM walking times into the legs first, then fit the trains around them.
+      const segs = baseSegs[idx] ?? [];
+      const walksReady = segs.every((s) => s.kind !== "walk" || segKey(s) in segWalks);
+      const legs = o.plan.legs.map((leg, i) => {
+        const seg = segs[i];
+        const r = seg && seg.kind === "walk" ? segWalks[segKey(seg)] : null;
+        if (leg.type !== "walk" || !r) return leg;
+        return { ...leg, durationMin: r.durationMin, instruction: leg.instruction.replace(/About \d+ min/, `About ${r.durationMin} min`) };
+      });
+      const plan = applyTrainData({ ...o.plan, legs }, data);
       const first = transitLegs(plan)[0];
       const scheduled = first ? nextTrips(first, data?.departures?.[legKey(first)]) : [];
       const preds = first ? live?.predictions[liveKey(first)] : undefined;
@@ -179,9 +209,11 @@ export default function GoPage() {
         deps,
         alerts: plan.alerts ?? [],
         checked: pending ? "pending" : data ? (plan.trainCheck === "ok" ? "scheduled" : "failed") : "failed",
+        walksReady,
       };
     });
-  }, [base, checks, live]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [base, baseSegs, checks, live, segWalks]);
 
   // Walk and car as simple one-leg options.
   const walk: ViewOption | null = useMemo(() => {
@@ -210,24 +242,13 @@ export default function GoPage() {
   if (chosen) lastChosen.current = chosen;
   const shown = chosenKey ? (chosen ?? lastChosen.current) : null;
 
+  // The walk for a segment: the shared OSRM result (the plain walk option reuses the Walk tab's route).
+  const walkFor = (s: Segment) => (s.kind !== "walk" ? undefined : s.role === "direct" ? walkRoute : segWalks[segKey(s)]);
   const segments: Segment[] = useMemo(
     () => (shown && origin && dest && shown.mode !== "car" ? segmentsOf(shown.plan, origin, dest) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [shown?.key, shown?.plan.legs.length, tripKey],
   );
-  const segKey = (s: Segment) => (s.kind === "walk" ? `${s.from.lat.toFixed(4)},${s.from.lng.toFixed(4)}>${s.to.lat.toFixed(4)},${s.to.lng.toFixed(4)}` : "");
-
-  // Walking directions for each walk of the chosen route.
-  useEffect(() => {
-    segments.forEach((s, i) => {
-      if (s.kind !== "walk") return;
-      const k = segKey(s);
-      if (k in segWalks) return;
-      const fromPrivate = i === 0 && !!user; // your live location: rounded before it leaves the phone
-      fetchOsrm("foot", { ...s.from, private: fromPrivate }, s.to).then((r) => setSegWalks((w) => ({ ...w, [k]: r })));
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [segments]);
 
   // Map drawing for the chosen route.
   const map = useMemo(() => {
@@ -242,7 +263,7 @@ export default function GoPage() {
     }
     for (const s of segments) {
       if (s.kind === "walk") {
-        const r = segWalks[segKey(s)];
+        const r = walkFor(s);
         // Join the exact ends, so the dotted line meets the stations and your real spot.
         const middle = r?.geometry ?? [];
         lines.push({ coords: [[s.from.lng, s.from.lat], ...middle, [s.to.lng, s.to.lat]], colour: WALK_COLOUR, dotted: true });
@@ -257,7 +278,7 @@ export default function GoPage() {
     const fit = lines.flatMap((l) => l.coords);
     return { lines, points, fit };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shown?.key, segments, segWalks, carRoute, tripKey]);
+  }, [shown?.key, segments, segWalks, walkRoute, carRoute, tripKey]);
 
   // ---- Screens ----
   if (!loaded || (index === null && outing)) return <p className="soft">Loading…</p>;
@@ -317,7 +338,7 @@ export default function GoPage() {
           <RouteView
             option={shown}
             segments={segments}
-            walks={Object.fromEntries(segments.map((s, i) => [i, s.kind === "walk" ? segWalks[segKey(s)] : undefined]))}
+            walks={Object.fromEntries(segments.map((s, i) => [i, walkFor(s)]))}
             destName={stop.place.name}
             now={now}
             onBack={() => setChosenKey(null)}

@@ -18,14 +18,22 @@ export type WalkSegment = {
 export type RideSegment = { kind: "ride"; leg: TransitLeg; stations: Station[] };
 export type Segment = WalkSegment | RideSegment;
 
-// "5 | Summer St, Atlantic Ave" -> "Summer St, Atlantic Ave (entrance 5)"
-export function entranceText(name: string): string {
-  const m = name.match(/^\s*([\w-]+)\s*\|\s*(.+)$/);
-  return m ? `${m[2]} (entrance ${m[1]})` : name;
+// Tidies an MBTA entrance name, or returns null when it wouldn't help ("Street", "Elevator", "Exit Only").
+// "5 | Summer St, Atlantic Ave" -> "Summer St, Atlantic Ave"; "Boston Common, Street" -> "Boston Common".
+const GENERIC = /^(street|entrance|exit|exit only|buses|bus|busway|elevator|stairs?|escalator|lobby|main|north|south|east|west|\d+)$/i;
+export function entranceText(name: string): string | null {
+  const body = name.replace(/^\s*[\w-]+\s*\|\s*/, ""); // drop the entrance number
+  if (/exit only|emergency|employees/i.test(body)) return null;
+  const parts = body
+    .split(",")
+    .map((p) => p.trim())
+    .filter((p) => p && !GENERIC.test(p));
+  const tidy = parts.join(", ");
+  return tidy.length >= 4 ? tidy : null;
 }
 
-function nearestEntrance(stationId: string, to: LatLng): { name: string; lat: number; lng: number } | null {
-  const list = entrancesOf(stationId);
+function nearestEntrance(stationId: string, to: LatLng, entering = false): { name: string; lat: number; lng: number } | null {
+  const list = entrancesOf(stationId).filter((e) => !(entering && /exit only/i.test(e.name))); // can't go in by an exit
   if (list.length === 0) return null;
   return list.reduce((best, e) => (distanceMeters(e, to) < distanceMeters(best, to) ? e : best));
 }
@@ -49,7 +57,7 @@ export function segmentsOf(plan: RoutePlan, origin: LatLng, dest: LatLng): Segme
       out.push({ kind: "walk", leg, from: here, to: stationById(next.stationId), entrance: null, role: "between-stations" });
     } else if (beforeRide) {
       const station = stationById(next.stationId);
-      const door = nearestEntrance(station.id, here);
+      const door = nearestEntrance(station.id, here, true);
       out.push({ kind: "walk", leg, from: here, to: door ?? station, entrance: door ? entranceText(door.name) : null, role: "to-station" });
     } else if (afterRide) {
       const station = stationById(prev.toStationId);

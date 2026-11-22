@@ -9,14 +9,14 @@ export type Square = {
 };
 
 // Always on the card (as long as there is room): the three "fun extras".
-const CORE_EXTRAS = [
+export const CORE_EXTRAS = [
   "Take a photo of something you like",
   "Walk down a street you haven't tried",
   "Step outside and take 3 slow breaths",
 ];
 
 // Extra gentle squares used to fill any space left over.
-const MORE_EXTRAS = [
+export const MORE_EXTRAS = [
   "Notice something green",
   "Sit down for a minute",
   "Listen for a sound you like",

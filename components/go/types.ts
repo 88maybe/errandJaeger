@@ -14,6 +14,7 @@ export type ViewOption = {
   deps: Dep[]; // next trains for the first ride
   alerts: PlanAlert[];
   checked: "scheduled" | "failed" | "pending" | "none"; // MBTA schedule lookup
+  walksReady?: boolean; // transit: every walk has its OSRM time (or OSRM said no and we use our estimate)
   carMin?: number;
   distanceM?: number;
 };

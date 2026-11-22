@@ -15,10 +15,18 @@ import { buildSteps } from "@/lib/planner/timeline";
 import { fetchTrainData } from "@/lib/transit/client";
 import { useLive } from "@/lib/useLive";
 import { useOuting } from "@/lib/useOuting";
-import type { Outing } from "@/lib/storage";
+import { finishOuting, type Outing } from "@/lib/storage";
+import { useRouter } from "next/navigation";
 
 export default function PlanPage() {
   const { outing, loaded, update } = useOuting();
+  const router = useRouter();
+
+  // A trip without a bingo card: finishing it counts toward your profile.
+  async function finishTrip() {
+    const done = await finishOuting();
+    router.push(done ? "/done" : "/");
+  }
   // Calmer mode opens on the one-step view. You can switch either way.
   const [view, setView] = useState<"overview" | "steps" | null>(null);
   const [simplifying, setSimplifying] = useState(false); // AI is rewriting the steps
@@ -176,9 +184,15 @@ export default function PlanPage() {
       {activeView === "overview" ? (
         <>
           <Timeline plan={outing.plan} live={hasTrains ? live.infos : undefined} />
-          <Link href="/bingo" className="btn btn-primary">
-            Open my bingo card
-          </Link>
+          {outing.bingo === false ? (
+            <button type="button" className="btn btn-primary" onClick={finishTrip}>
+              Finish outing
+            </button>
+          ) : (
+            <Link href="/bingo" className="btn btn-primary">
+              Open my bingo card
+            </Link>
+          )}
         </>
       ) : (
         <>

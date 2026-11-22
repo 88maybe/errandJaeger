@@ -11,16 +11,20 @@
     "check:planner": "tsx lib/planner/check.ts",
     "spike:mbta": "tsx scripts/mbta-spike.ts",
     "sync:terminals": "tsx scripts/mbta-terminals.ts",
-    "snapshot:places": "tsx scripts/osm-snapshot.ts"
+    "snapshot:places": "tsx scripts/osm-snapshot.ts",
+    "check:db": "tsx scripts/check-db.ts"
   },
   "dependencies": {
     "maplibre-gl": "^6.19.0",
     "next": "16.4.6",
+    "pg": "^8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.17",
     "@types/node": "^20",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "tsx": "^4.23.15",

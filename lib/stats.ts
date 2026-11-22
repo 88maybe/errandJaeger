@@ -33,13 +33,13 @@ export function computeStreak(finishedDates: Date[], now: Date = new Date()): nu
 }
 
 export function computeStats(history: Outing[], now: Date = new Date()): Stats {
-  // Only finished outings with at least one tick count.
-  const finished = history.filter((o) => o.finishedAt && o.ticked.length > 0);
+  // Finished outings count if something was ticked, or if the trip had no bingo card.
+  const finished = history.filter((o) => o.finishedAt && (o.ticked.length > 0 || o.bingo === false));
   return {
     outings: finished.length,
-    // Stop squares you ticked.
+    // Stop squares you ticked (a trip without bingo: every stop in the finished plan).
     placesVisited: finished.reduce(
-      (sum, o) => sum + o.ticked.filter((i) => o.card[i]?.kind === "stop").length,
+      (sum, o) => sum + (o.bingo === false ? o.plan.stops.length : o.ticked.filter((i) => o.card[i]?.kind === "stop").length),
       0,
     ),
     minutesWalked: finished.reduce((sum, o) => sum + o.plan.legs.reduce((m, leg) => (leg.type === "walk" ? m + leg.durationMin : m), 0), 0),

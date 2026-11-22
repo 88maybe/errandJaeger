@@ -14,6 +14,7 @@ export type TimelineItem = {
   basis: Basis; // where this item's time comes from (shown as a chip)
   warning?: string; // loud last-train warning for this item (shown on screen, never reworded by AI)
   keep?: string[]; // words the AI must keep if it rewords this item (transit facts)
+  routeIds?: string[]; // transit only: for the line chip
 };
 
 // Friendly names for each need.
@@ -53,6 +54,7 @@ export function buildSteps(plan: RoutePlan): TimelineItem[] {
       endTime: boardEnd,
       basis: leg.departBasis ?? "estimate",
       keep: [leg.platform, ...leg.toward],
+      routeIds: leg.routeIds,
     });
     steps.push({
       kind: "transit",
@@ -65,6 +67,7 @@ export function buildSteps(plan: RoutePlan): TimelineItem[] {
       endTime: item.endTime,
       basis: leg.arriveBasis ?? "estimate",
       keep: [String(leg.stops), leg.getOffAt],
+      routeIds: leg.routeIds,
     });
   }
   return steps;
@@ -88,6 +91,7 @@ export function buildTimeline(plan: RoutePlan): TimelineItem[] {
         basis: leg.departBasis ?? "estimate",
         warning: leg.lastWarning ?? undefined,
         keep: transitKeep(leg),
+        routeIds: leg.routeIds,
       });
     } else {
       items.push({

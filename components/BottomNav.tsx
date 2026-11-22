@@ -19,14 +19,19 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M9 3v18M15 3v18M3 9h18M3 15h18" />
     </>
   ),
-  stats: <path d="M5 20v-8M12 20V5M19 20v-9" />,
+  stats: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </>
+  ),
 };
 
 const TABS = [
   { href: "/", label: "Home", icon: "home" },
   { href: "/plan", label: "Plan", icon: "plan" },
   { href: "/bingo", label: "Bingo", icon: "bingo" },
-  { href: "/stats", label: "Stats", icon: "stats" },
+  { href: "/stats", label: "Profile", icon: "stats" },
 ];
 
 export default function BottomNav() {

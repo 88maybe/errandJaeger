@@ -23,7 +23,7 @@ const mins = (n: number) => `${n} min`;
 // The options screen: a tab row (Transit / Walk / Car), each with its time, then the choices.
 export default function OptionsView({ tab, onTab, transit, walk, car, carState, liveState, now, onChoose }: Props) {
   const tabs: { id: Tab; label: string; time: string }[] = [
-    { id: "transit", label: "Transit", time: transit[0] ? mins(transit[0].summary.totalMin) : "–" },
+    { id: "transit", label: "Transit", time: transit[0] ? (transit[0].walksReady ? mins(transit[0].summary.totalMin) : "…") : "–" },
     { id: "walk", label: "Walk", time: walk ? mins(walk.summary.totalMin) : "–" },
     { id: "car", label: "Car", time: car ? mins(car.summary.totalMin) : carState === "loading" ? "…" : "–" },
   ];
@@ -52,11 +52,17 @@ export default function OptionsView({ tab, onTab, transit, walk, car, carState, 
                 ))}
               </span>
               <RouteStrip option={o} />
+              {!o.walksReady ? (
+                <span className="soft">Working out the walking times…</span>
+              ) : (
+              <>
               <span className="option-times">
                 Leave {formatNY(o.summary.leaveAt)}, arrive {formatNY(o.summary.arriveAt)}, <strong>{o.summary.totalMin} min</strong>
                 <small> ({o.checked === "scheduled" ? "trains scheduled, walks estimated" : "estimate"})</small>
               </span>
               <span className="option-leave">{leaveInText(o.summary.leaveAt, now)}</span>
+              </>
+              )}
               <DepChips deps={o.deps} />
               {o.checked === "pending" && <small className="soft">Checking train times…</small>}
               {o.checked === "failed" && <small className="soft">Couldn&apos;t check train times. Please verify before you go.</small>}

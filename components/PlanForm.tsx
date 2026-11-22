@@ -16,6 +16,7 @@ export type FormValues = {
   leaveNow?: boolean; // start = this moment
   loop: boolean;
   calm: boolean;
+  bingo: boolean; // make a bingo card for this trip
   start: Point;
 };
 
@@ -44,6 +45,7 @@ export default function PlanForm({ initial, onSubmit, start, onStart, usingLocat
   const [startHHMM, setStartHHMM] = useState("");
   const [loop, setLoop] = useState(initial.loop);
   const [calm, setCalm] = useState(initial.calm);
+  const [bingo, setBingo] = useState(initial.bingo !== false);
 
   // "Tell me what you need today": text -> prefilled choices (you still confirm and press the button).
   const [text, setText] = useState("");
@@ -95,7 +97,7 @@ export default function PlanForm({ initial, onSubmit, start, onStart, usingLocat
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        if (ready) onSubmit({ needs, startHHMM, loop, calm, start });
+        if (ready) onSubmit({ needs, startHHMM, loop, calm, bingo, start });
       }}
     >
       <div className="tell">
@@ -163,6 +165,14 @@ export default function PlanForm({ initial, onSubmit, start, onStart, usingLocat
         </span>
       </label>
 
+      <label className="toggle">
+        <input type="checkbox" checked={bingo} onChange={(e) => setBingo(e.target.checked)} />
+        <span>
+          Bingo card for this trip
+          <small>Optional. Tick squares as you go, or just walk.</small>
+        </span>
+      </label>
+
       <button type="submit" className="btn btn-primary" disabled={!ready}>
         Make my plan
       </button>
@@ -170,7 +180,7 @@ export default function PlanForm({ initial, onSubmit, start, onStart, usingLocat
         type="button"
         className="btn btn-secondary"
         disabled={!hasSomething}
-        onClick={() => onSubmit({ needs, startHHMM, leaveNow: true, loop, calm, start })}
+        onClick={() => onSubmit({ needs, startHHMM, leaveNow: true, loop, calm, bingo, start })}
       >
         Leave now
       </button>

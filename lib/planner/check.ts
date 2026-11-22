@@ -181,3 +181,18 @@ for (const o of opts) {
   }
 }
 console.log(`Directions check: ${opts.length >= 1 && opts.length <= 2 ? "OK" : "PROBLEM"} (${opts.length} option(s))`);
+
+// ---- Brain dump: categories only, the user's own words only ----
+import { basicDump, validateDump } from "../ai/braindump";
+const dumpText = "pick up meds, need cash, milk and eggs, maybe a matcha after";
+const basic = basicDump(dumpText);
+const sneaky = validateDump(
+  { items: [{ kind: "pharmacy", words: "pick up meds" }, { kind: "museum", words: "visit the MFA at 3pm" }, { kind: "casino", words: "need cash" }, { kind: "pharmacy", words: "again" }] },
+  dumpText,
+);
+console.log(`Brain dump (simple matching): ${basic.map((d) => `${d.kind} "${d.words}"`).join(", ")}`);
+console.log(`Brain dump (checked AI answer): ${sneaky.map((d) => `${d.kind} "${d.words}"`).join(", ")}`);
+const dumpOk =
+  basic.map((d) => d.kind).join() === "pharmacy,bank,groceries,boba" &&
+  sneaky.length === 2 && sneaky[0].words === "pick up meds" && sneaky[1].kind === "museum" && sneaky[1].words === "";
+console.log(`Brain dump check: ${dumpOk ? "OK (unknown categories dropped, invented words removed)" : "PROBLEM"}`);

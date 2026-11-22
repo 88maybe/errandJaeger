@@ -2,7 +2,7 @@ import data from "@/data/places.json";
 import snapshot from "@/data/osm-snapshot.json";
 import { rateLimited } from "@/lib/ai/guard";
 import { inArea, kindById, RADII, roundCoord, type Kind } from "@/lib/nearby/categories";
-import { kindQuery, overpass, toNearby } from "@/lib/nearby/osm";
+import { isPublicLibrary, kindQuery, overpass, toNearby } from "@/lib/nearby/osm";
 import type { NearbyPlace, NearbyResponse } from "@/lib/nearby/types";
 import { distanceMeters } from "@/lib/planner/geo";
 import type { Place } from "@/lib/planner/types";
@@ -13,7 +13,7 @@ import type { Place } from "@/lib/planner/types";
 
 const CACHE_TTL_MS = 30 * 60_000; // places don't move
 const FAIL_TTL_MS = 60_000; // after every mirror failed, use the fallbacks for a minute without asking again
-const MAX_RESULTS = 60;
+const MAX_RESULTS = 30; // per category and search
 
 const cache = new Map<string, { at: number; value: NearbyPlace[] }>();
 let failedAt = 0;
@@ -24,7 +24,7 @@ const byDistance = (lat: number, lng: number) => (a: NearbyPlace, b: NearbyPlace
 function fromSnapshot(kind: Kind, lat: number, lng: number, radius: number): NearbyPlace[] {
   const places = (snapshot.places ?? []) as NearbyPlace[];
   return places
-    .filter((p) => p.kind === kind.id && near(lat, lng, radius)(p))
+    .filter((p) => p.kind === kind.id && near(lat, lng, radius)(p) && (kind.id !== "library" || isPublicLibrary(p.name)))
     .map((p) => ({ ...p, source: "snapshot" as const }))
     .sort(byDistance(lat, lng))
     .slice(0, MAX_RESULTS);

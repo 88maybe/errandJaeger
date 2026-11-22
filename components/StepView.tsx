@@ -4,9 +4,10 @@ import { buildSteps } from "@/lib/planner/timeline";
 import type { Basis, RoutePlan } from "@/lib/planner/types";
 import type { LiveInfo } from "@/lib/transit/live";
 import { LiveLine } from "./LiveTrip";
+import LineChip from "./LineChip";
 import TimeChip from "./TimeChip";
 
-type Step = { kind: "start" | "walk" | "stop" | "transit" | "end"; title: string; detail: string; time?: string; warning?: string; basis?: Basis; liveKey?: string };
+type Step = { kind: "start" | "walk" | "stop" | "transit" | "end"; title: string; detail: string; time?: string; warning?: string; basis?: Basis; liveKey?: string; routeIds?: string[] };
 
 // One big step at a time, with Back and Next.
 export default function StepView({
@@ -30,6 +31,7 @@ export default function StepView({
       detail: actions?.[i] || item.detail, // simple action if we have one, else the standard text
       warning: item.warning,
       basis: item.basis,
+      routeIds: item.routeIds,
       liveKey: item.kind === "transit" && item.title.startsWith("Ride") ? undefined : item.startTime,
       time: `${formatNY(item.startTime)} to ${formatNY(item.endTime)}`,
     })),
@@ -56,7 +58,9 @@ export default function StepView({
             {current.basis && <TimeChip basis={current.basis} />}
           </p>
         )}
-        <h2 className="step-title">{current.title}</h2>
+        <h2 className="step-title">
+          {current.routeIds && <LineChip routeIds={current.routeIds} />} {current.title}
+        </h2>
         <p className="step-detail">{current.detail}</p>
         {current.kind === "transit" && current.liveKey && live?.[current.liveKey] && <LiveLine info={live[current.liveKey]} />}
         {current.warning && (

@@ -58,6 +58,24 @@ export default function BingoPage() {
     );
   }
 
+  // Bingo is optional per trip.
+  if (outing.bingo === false) {
+    return (
+      <main>
+        <h1 className="page-title">Bingo</h1>
+        <div className="card empty">
+          <p>This trip has no bingo card. That&apos;s fine: just walk.</p>
+          <button type="button" className="btn btn-primary" onClick={() => update((prev) => ({ ...prev, bingo: true }))}>
+            Add a bingo card to this trip
+          </button>
+          <Link href="/plan" className="btn btn-secondary">
+            Back to the plan
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   function tap(index: number) {
     if (!outing) return;
     const wasTicked = outing.ticked.includes(index);

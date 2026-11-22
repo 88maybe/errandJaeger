@@ -1,6 +1,7 @@
 // Browser side: calls our own API routes (never Gemini directly, so the key stays on the server).
 // Every call has a timeout and returns null on ANY problem, so callers always fall back to non-AI behaviour.
 import type { ParsedRequest, StepFacts } from "./validate";
+import type { DumpItem } from "./braindump";
 
 async function post<T>(path: string, body: unknown, timeoutMs = 12000): Promise<T | null> {
   const controller = new AbortController();
@@ -36,4 +37,9 @@ export async function aiBingoLabels(
 export async function aiActions(items: StepFacts[]): Promise<Record<number, string> | null> {
   const data = await post<{ actions: Record<number, string> }>("/api/ai/steps", { items });
   return data?.actions ?? null;
+}
+
+export async function aiBrainDump(text: string): Promise<DumpItem[] | null> {
+  const data = await post<{ items: DumpItem[] }>("/api/ai/braindump", { text });
+  return data?.items ?? null;
 }

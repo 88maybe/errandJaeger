@@ -2,17 +2,8 @@
 
 import type { TransitLeg } from "@/lib/planner/types";
 import { formatNY } from "@/lib/planner/time";
-import { chipLabel, familyOf, LINE_COLOUR } from "@/lib/transit/look";
+import LineChip from "@/components/LineChip";
 import type { Dep, ViewOption } from "./types";
-
-export function LineChip({ routeIds }: { routeIds: string[] }) {
-  const colour = LINE_COLOUR[familyOf(routeIds)];
-  return (
-    <span className="line-chip" style={{ background: colour }}>
-      {chipLabel(routeIds)}
-    </span>
-  );
-}
 
 // "Walk 5 › RL › GL B › Walk 3"
 export function RouteStrip({ option }: { option: ViewOption }) {
